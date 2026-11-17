@@ -575,6 +575,69 @@ export type Database = {
           { foreignKeyName: "stock_allocations_book_id_fkey"; columns: ["book_id"]; isOneToOne: false; referencedRelation: "books"; referencedColumns: ["id"] },
         ]
       }
+      bags: {
+        Row: {
+          id: string
+          order_id: string
+          bag_no: number
+          code: string
+          status: string
+          is_partial: boolean
+          delivery_id: string | null
+          notes: string | null
+          created_at: string
+          created_by_name: string | null
+          picked_at: string | null
+          picked_by_name: string | null
+          checked_at: string | null
+          checked_by_name: string | null
+          ready_at: string | null
+          ready_by_name: string | null
+          delivered_at: string | null
+          delivered_by_name: string | null
+          received_by: string | null
+          label_printed_at: string | null
+          updated_at: string
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          { foreignKeyName: "bags_order_id_fkey"; columns: ["order_id"]; isOneToOne: false; referencedRelation: "orders"; referencedColumns: ["id"] },
+          { foreignKeyName: "bags_delivery_id_fkey"; columns: ["delivery_id"]; isOneToOne: false; referencedRelation: "institution_deliveries"; referencedColumns: ["id"] },
+        ]
+      }
+      bag_items: {
+        Row: { id: string; bag_id: string; order_item_id: string; qty: number }
+        Insert: never
+        Update: never
+        Relationships: [
+          { foreignKeyName: "bag_items_bag_id_fkey"; columns: ["bag_id"]; isOneToOne: false; referencedRelation: "bags"; referencedColumns: ["id"] },
+        ]
+      }
+      institution_deliveries: {
+        Row: {
+          id: string
+          number: number
+          institution_year_id: string
+          delivery_date: string | null
+          carrier: string | null
+          cost: number | null
+          paid_by: string | null
+          boxes_count: number | null
+          status: string
+          receiver_name: string | null
+          delivered_at: string | null
+          notes: string | null
+          created_at: string
+          created_by_name: string | null
+          updated_at: string
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          { foreignKeyName: "institution_deliveries_institution_year_id_fkey"; columns: ["institution_year_id"]; isOneToOne: false; referencedRelation: "institution_years"; referencedColumns: ["id"] },
+        ]
+      }
       roles: {
         Row: {
           created_at: string
@@ -726,6 +789,68 @@ export type Database = {
           ordered_draft: number
         }[]
       }
+      save_bag: { Args: { p_order: string; p_lines: Json; p_bag?: string; p_notes?: string }; Returns: string }
+      set_bag_status: { Args: { p_bag: string; p_status: string; p_received_by?: string }; Returns: undefined }
+      mark_labels_printed: { Args: { p_bags: string[] }; Returns: undefined }
+      save_delivery: {
+        Args: {
+          p_iy: string
+          p_delivery?: string
+          p_date?: string
+          p_carrier?: string
+          p_cost?: number
+          p_paid_by?: string
+          p_boxes?: number
+          p_notes?: string
+        }
+        Returns: string
+      }
+      assign_bags_to_delivery: { Args: { p_delivery: string; p_bags: string[]; p_remove?: boolean }; Returns: number }
+      set_delivery_status: { Args: { p_delivery: string; p_status: string; p_receiver?: string }; Returns: undefined }
+      packing_queue: {
+        Args: { p_year: string }
+        Returns: {
+          order_id: string
+          order_number: number
+          order_status: string
+          delivery_method: string
+          student_name: string
+          customer_name: string
+          institution_year_id: string
+          inst_name: string
+          class_name: string
+          qty_total: number
+          qty_packed: number
+          qty_delivered: number
+          bags_open: number
+          bags_ready: number
+          balance: number
+        }[]
+      }
+      pack_availability: {
+        Args: { p_year: string }
+        Returns: { institution_year_id: string; book_id: string; allocated: number; packed_open: number }[]
+      }
+      order_pack_details: { Args: { p_order: string }; Returns: Json }
+      bag_labels: { Args: { p_bags: string[] }; Returns: Json }
+      find_orders_for_pickup: {
+        Args: { p_year: string; p_query: string }
+        Returns: {
+          order_id: string
+          order_number: number
+          order_status: string
+          student_name: string
+          customer_name: string
+          customer_phone: string | null
+          inst_name: string
+          class_name: string
+          balance: number
+          bags_ready: number
+          bags_open: number
+          bags_delivered: number
+        }[]
+      }
+      delivery_report: { Args: { p_delivery: string }; Returns: Json }
       has_permission: { Args: { p: string }; Returns: boolean }
       is_active_user: { Args: never; Returns: boolean }
       is_super_user: { Args: never; Returns: boolean }
