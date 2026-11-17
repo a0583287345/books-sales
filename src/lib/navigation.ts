@@ -35,12 +35,12 @@ export type NavItem = {
 
 export const NAV_ITEMS: NavItem[] = [
   { href: '/', label: 'מסך ראשי', icon: Home, perm: 'dashboard_view', ready: true },
-  { href: '/years', label: 'שנות לימודים', icon: CalendarRange, perm: 'years_view', ready: false },
-  { href: '/institutions', label: 'מוסדות', icon: School, perm: 'institutions_view', ready: false },
-  { href: '/classes', label: 'כיתות ורשימות', icon: ClipboardList, perm: 'classes_view', ready: false },
-  { href: '/books', label: 'קטלוג ספרים', icon: BookOpen, perm: 'books_view', ready: false },
-  { href: '/suppliers', label: 'ספקים', icon: Boxes, perm: 'suppliers_view', ready: false },
-  { href: '/customers', label: 'לקוחות', icon: Users, perm: 'customers_view', ready: false },
+  { href: '/years', label: 'שנות לימודים', icon: CalendarRange, perm: 'years_view', ready: true },
+  { href: '/institutions', label: 'מוסדות', icon: School, perm: 'institutions_view', ready: true },
+  { href: '/classes', label: 'כיתות ורשימות', icon: ClipboardList, perm: 'classes_view', ready: true },
+  { href: '/books', label: 'קטלוג ספרים', icon: BookOpen, perm: 'books_view', ready: true },
+  { href: '/suppliers', label: 'ספקים', icon: Boxes, perm: 'suppliers_view', ready: true },
+  { href: '/customers', label: 'לקוחות', icon: Users, perm: 'customers_view', ready: true },
   { href: '/orders', label: 'הזמנות', icon: ShoppingCart, perm: 'orders_view', ready: false },
   { href: '/purchase-orders', label: 'הזמנות רכש', icon: PackageOpen, perm: 'po_view', ready: false },
   { href: '/receiving', label: 'קליטת סחורה', icon: PackageCheck, perm: 'receiving_do', ready: false },

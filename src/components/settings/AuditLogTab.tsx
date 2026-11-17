@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Loader2, Search } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/components/Toaster';
-import { friendlyDbError } from './dbErrors';
+import { dbErrorMessage } from '@/lib/dbErrors';
 
 type LogRow = {
   id: number;
@@ -51,7 +51,7 @@ export function AuditLogTab() {
       .limit(LIMIT)
       .then(({ data, error }) => {
         if (cancelled) return;
-        if (error) toast.error(friendlyDbError(error.message));
+        if (error) toast.error(dbErrorMessage(error.message));
         setRows(data ?? []);
         setLoading(false);
       });

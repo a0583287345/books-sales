@@ -62,6 +62,15 @@ export function LockedPage({ permId }: { permId: string }) {
   );
 }
 
+/** מסך שלם לפי הרשאת צפייה: מותר → המסך; אחרת → הודעת "אין הרשאה" */
+export function PageGuard({ permId, children }: { permId: string | string[]; children: React.ReactNode }) {
+  const { hasPermission, loading } = useAuth();
+  if (loading) return null;
+  const ids = Array.isArray(permId) ? permId : [permId];
+  if (!ids.some(hasPermission)) return <LockedPage permId={ids[0]} />;
+  return <>{children}</>;
+}
+
 /** עוטף כפתור: חוסם את הלחיצה לפני שהיא מגיעה אליו, ומציג הודעה */
 function LockedAction({
   permId,

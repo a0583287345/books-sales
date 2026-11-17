@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BookOpen, Loader2, Lock, LogOut, Menu, UserX, X } from 'lucide-react';
+import { BookOpen, CalendarRange, Loader2, Lock, LogOut, Menu, UserX, X } from 'lucide-react';
 import { useAuth } from '@/components/AuthContext';
+import { useYear, YEAR_STATUS_LABELS } from '@/components/YearContext';
 import { toast } from '@/components/Toaster';
 import { NAV_ITEMS, type NavItem } from '@/lib/navigation';
 import type { PermissionState } from '@/lib/permissions';
@@ -96,7 +97,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-1 min-h-screen bg-slate-50">
       {/* תפריט צד – מחשב */}
-      <aside className="hidden lg:flex w-60 shrink-0 flex-col border-l border-slate-200 bg-white">
+      <aside className="hidden lg:flex w-60 shrink-0 flex-col border-l border-slate-200 bg-white print:hidden">
         <Brand />
         <div className="flex-1 overflow-y-auto">{nav}</div>
         <UserBox name={access.fullName} role={access.roleName} onSignOut={signOut} />
@@ -120,15 +121,48 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       <div className="flex flex-1 flex-col min-w-0">
-        <header className="lg:hidden flex items-center gap-3 border-b border-slate-200 bg-white px-3 py-2">
-          <button onClick={() => setOpen(true)} className="p-2" aria-label="פתיחת התפריט">
+        <header className="flex items-center gap-3 border-b border-slate-200 bg-white px-3 py-2 print:hidden">
+          <button onClick={() => setOpen(true)} className="p-2 lg:hidden" aria-label="פתיחת התפריט">
             <Menu className="w-6 h-6" />
           </button>
-          <span className="font-bold">מכירת ספרי לימוד</span>
+          <span className="font-bold lg:hidden">מכירת ספרי לימוד</span>
+          <div className="flex-1" />
+          <YearSelect />
         </header>
         <main className="flex flex-1 flex-col p-4 lg:p-6">{children}</main>
       </div>
     </div>
+  );
+}
+
+function YearSelect() {
+  const { years, year, setYearId } = useYear();
+  if (years.length === 0) {
+    return (
+      <Link href="/years" className="text-sm text-blue-600 hover:underline">
+        עדיין אין שנת לימודים – לפתיחת שנה
+      </Link>
+    );
+  }
+  return (
+    <label className="flex items-center gap-2 text-sm">
+      <CalendarRange className="h-4 w-4 text-slate-500" />
+      <span className="hidden sm:inline text-slate-500">שנת לימודים:</span>
+      <select
+        value={year?.id ?? ''}
+        onChange={(e) => setYearId(e.target.value)}
+        className={`rounded-lg border px-2 py-1.5 font-medium ${
+          year?.status === 'closed' ? 'border-amber-300 bg-amber-50' : 'border-slate-300 bg-white'
+        }`}
+      >
+        {years.map((y) => (
+          <option key={y.id} value={y.id}>
+            {y.name}
+            {y.status !== 'active' ? ` (${YEAR_STATUS_LABELS[y.status]})` : ''}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 

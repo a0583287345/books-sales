@@ -8,7 +8,7 @@ import { toast } from '@/components/Toaster';
 import { logActivity } from '@/lib/logger';
 import { normalizeStates, type PermissionStateMap } from '@/lib/permissions';
 import { PermissionEditor } from './PermissionEditor';
-import { friendlyDbError } from './dbErrors';
+import { dbErrorMessage } from '@/lib/dbErrors';
 
 export type RoleRow = {
   id: string;
@@ -25,7 +25,7 @@ export async function loadRoles(): Promise<RoleRow[]> {
     .order('is_super', { ascending: false })
     .order('name');
   if (error) {
-    toast.error(friendlyDbError(error.message));
+    toast.error(dbErrorMessage(error.message));
     return [];
   }
   return (data ?? []).map((r) => ({ ...r, permissions: normalizeStates(r.permissions) }));
@@ -99,7 +99,7 @@ export function RolesTab() {
       ? await supabase.from('roles').update(payload).eq('id', draft.id).select('id').single()
       : await supabase.from('roles').insert(payload).select('id').single();
     setSaving(false);
-    if (error) return toast.error(friendlyDbError(error.message));
+    if (error) return toast.error(dbErrorMessage(error.message));
 
     await logActivity(draft.id ? 'update' : 'create', 'roles', `${draft.id ? 'עודכן' : 'נוצר'} תפקיד: ${name}`, {
       entityId: data.id,
@@ -118,7 +118,7 @@ export function RolesTab() {
     }
     if (!window.confirm(`למחוק את התפקיד "${selected.name}"?`)) return;
     const { error } = await supabase.from('roles').delete().eq('id', selected.id);
-    if (error) return toast.error(friendlyDbError(error.message));
+    if (error) return toast.error(dbErrorMessage(error.message));
     await logActivity('delete', 'roles', `נמחק תפקיד: ${selected.name}`, { entityId: selected.id });
     toast.success('התפקיד נמחק');
     setSelectedId(null);

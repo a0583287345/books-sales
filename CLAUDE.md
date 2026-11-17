@@ -21,6 +21,19 @@
   כתיבה לטבלאות דרך `userClient(token)` כדי שהטריגרים במסד יאכפו
 - `src/lib/logger.ts` – `logActivity(action, entity, description)`; שם המשתמש נקבע בטריגר במסד
 - `src/types/database.ts` – טיפוסים שנוצרו מהמסד (לייצר מחדש אחרי שינוי סכמה)
+- `src/components/YearContext.tsx` – `useYear()`: השנה הנבחרת (נשמרת במכשיר), `readOnly` לשנה סגורה
+- `src/components/ui.tsx` – `Modal`, `Field`, `Button`, `PageHeader`, `inputClass`... ; `BookPicker`, `DateInput`, `PhoneLink`
+- `src/lib/entities.ts` – טיפוסים, רשימות עמודות ושליפות משותפות (ספקים, ספרים, מוסדות, כיתות)
+- `src/lib/format.ts` (₪, תאריכים, חיפוש), `src/lib/excel.ts` (`exportToExcel`), `src/lib/dbErrors.ts` (`dbErrorMessage`)
+- **אסור לייצא מ-`page.tsx` משהו חוץ מהקומפוננטה** – דברים משותפים ב-`src/lib` / `src/components`
+- מסכי שלב א׳: `src/app/(app)/{years,institutions,classes,books,suppliers,customers}/page.tsx` – כל מסך עטוף ב-`<PageGuard>`
+
+## נתונים (שלב א׳)
+- קבוע: `institutions`, `books`, `suppliers`, `book_suppliers` (מחיר קנייה – רק כאן), `customers` + `customer_private`
+- לפי שנה: `academic_years` → `institution_years` (המכירה במוסד) → `classes` → `class_books`
+- העתקות = פונקציות במסד (`copy_year`, `copy_institution`, `copy_institution_to_year`, `copy_class`, `copy_class_books`),
+  פעולה אחת שלמה, שורת סיכום אחת ביומן (`app.skip_row_audit`)
+- כל טבלה חדשה: טריגר `audit_row('<שם בעברית>')` + `set_updated_at` + RLS
 
 ## הרשאות (במסד)
 - `roles.permissions` / `user_profiles.permission_overrides` = `{perm: 'allowed'|'locked'|'hidden'}`; חסר = מוסתר.

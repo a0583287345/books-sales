@@ -10,7 +10,7 @@ import { logActivity } from '@/lib/logger';
 import { normalizeStates, type PermissionStateMap } from '@/lib/permissions';
 import { PermissionEditor } from './PermissionEditor';
 import { loadRoles, type RoleRow } from './RolesTab';
-import { friendlyDbError } from './dbErrors';
+import { dbErrorMessage } from '@/lib/dbErrors';
 
 type UserRow = {
   id: string;
@@ -32,7 +32,7 @@ async function fetchUsersData() {
       .order('is_active', { ascending: false })
       .order('full_name'),
   ]);
-  if (error) toast.error(friendlyDbError(error.message));
+  if (error) toast.error(dbErrorMessage(error.message));
   const userList: UserRow[] = (data ?? []).map((u) => ({
     ...u,
     permission_overrides: normalizeStates(u.permission_overrides),
@@ -275,7 +275,7 @@ function EditUserModal({
       .update({ full_name: fullName.trim(), role_id: roleId, permission_overrides: overrides })
       .eq('id', user.id);
     setBusy(null);
-    if (error) return toast.error(friendlyDbError(error.message));
+    if (error) return toast.error(dbErrorMessage(error.message));
     await logActivity('update', 'user_profiles', `עודכן משתמש: ${fullName.trim()} (תפקיד והרשאות)`, { entityId: user.id });
     toast.success('השינויים נשמרו');
     if (isSelf) await refresh();
