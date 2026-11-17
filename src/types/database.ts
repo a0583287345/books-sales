@@ -459,6 +459,122 @@ export type Database = {
           { foreignKeyName: "order_events_order_id_fkey"; columns: ["order_id"]; isOneToOne: false; referencedRelation: "orders"; referencedColumns: ["id"] },
         ]
       }
+      purchase_orders: {
+        Row: {
+          id: string
+          number: number
+          supplier_id: string
+          year_id: string
+          status: string
+          order_date: string | null
+          expected_date: string | null
+          notes: string | null
+          close_note: string | null
+          closed_at: string | null
+          closed_by_name: string | null
+          created_at: string
+          created_by_name: string | null
+          updated_at: string
+        }
+        Insert: { supplier_id: string; year_id: string; notes?: string | null; expected_date?: string | null; order_date?: string | null }
+        Update: { notes?: string | null; expected_date?: string | null; order_date?: string | null }
+        Relationships: [
+          { foreignKeyName: "purchase_orders_supplier_id_fkey"; columns: ["supplier_id"]; isOneToOne: false; referencedRelation: "suppliers"; referencedColumns: ["id"] },
+          { foreignKeyName: "purchase_orders_year_id_fkey"; columns: ["year_id"]; isOneToOne: false; referencedRelation: "academic_years"; referencedColumns: ["id"] },
+        ]
+      }
+      po_items: {
+        Row: {
+          id: string
+          po_id: string
+          book_id: string
+          qty_ordered: number
+          qty_received: number
+          qty_damaged: number
+          qty_wrong: number
+          qty_returned: number
+          shortage_note: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: { po_id: string; book_id: string; notes?: string | null }
+        Update: { notes?: string | null; shortage_note?: string | null }
+        Relationships: [
+          { foreignKeyName: "po_items_po_id_fkey"; columns: ["po_id"]; isOneToOne: false; referencedRelation: "purchase_orders"; referencedColumns: ["id"] },
+          { foreignKeyName: "po_items_book_id_fkey"; columns: ["book_id"]; isOneToOne: false; referencedRelation: "books"; referencedColumns: ["id"] },
+        ]
+      }
+      po_item_costs: {
+        Row: { po_item_id: string; unit_cost: number | null; updated_at: string }
+        Insert: { po_item_id: string; unit_cost?: number | null }
+        Update: { unit_cost?: number | null }
+        Relationships: [
+          { foreignKeyName: "po_item_costs_po_item_id_fkey"; columns: ["po_item_id"]; isOneToOne: true; referencedRelation: "po_items"; referencedColumns: ["id"] },
+        ]
+      }
+      po_item_allocations: {
+        Row: { id: string; po_item_id: string; institution_year_id: string | null; qty: number }
+        Insert: { po_item_id: string; institution_year_id?: string | null; qty: number }
+        Update: { qty?: number }
+        Relationships: [
+          { foreignKeyName: "po_item_allocations_po_item_id_fkey"; columns: ["po_item_id"]; isOneToOne: false; referencedRelation: "po_items"; referencedColumns: ["id"] },
+          { foreignKeyName: "po_item_allocations_institution_year_id_fkey"; columns: ["institution_year_id"]; isOneToOne: false; referencedRelation: "institution_years"; referencedColumns: ["id"] },
+        ]
+      }
+      po_receipts: {
+        Row: { id: string; po_id: string; received_at: string; received_by_name: string | null; notes: string | null }
+        Insert: never
+        Update: never
+        Relationships: [
+          { foreignKeyName: "po_receipts_po_id_fkey"; columns: ["po_id"]; isOneToOne: false; referencedRelation: "purchase_orders"; referencedColumns: ["id"] },
+        ]
+      }
+      po_receipt_lines: {
+        Row: { id: string; receipt_id: string; po_item_id: string; qty_good: number; qty_damaged: number; qty_wrong: number }
+        Insert: never
+        Update: never
+        Relationships: [
+          { foreignKeyName: "po_receipt_lines_receipt_id_fkey"; columns: ["receipt_id"]; isOneToOne: false; referencedRelation: "po_receipts"; referencedColumns: ["id"] },
+          { foreignKeyName: "po_receipt_lines_po_item_id_fkey"; columns: ["po_item_id"]; isOneToOne: false; referencedRelation: "po_items"; referencedColumns: ["id"] },
+        ]
+      }
+      po_returns: {
+        Row: { id: string; po_item_id: string; qty: number; kind: string; reason: string | null; created_at: string; created_by_name: string | null }
+        Insert: never
+        Update: never
+        Relationships: [
+          { foreignKeyName: "po_returns_po_item_id_fkey"; columns: ["po_item_id"]; isOneToOne: false; referencedRelation: "po_items"; referencedColumns: ["id"] },
+        ]
+      }
+      stock_movements: {
+        Row: {
+          id: number
+          book_id: string
+          qty: number
+          kind: string
+          po_item_id: string | null
+          institution_year_id: string | null
+          order_id: string | null
+          reason: string | null
+          created_at: string
+          created_by_name: string | null
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          { foreignKeyName: "stock_movements_book_id_fkey"; columns: ["book_id"]; isOneToOne: false; referencedRelation: "books"; referencedColumns: ["id"] },
+        ]
+      }
+      stock_allocations: {
+        Row: { id: string; institution_year_id: string; book_id: string; qty: number; updated_at: string; updated_by_name: string | null }
+        Insert: never
+        Update: never
+        Relationships: [
+          { foreignKeyName: "stock_allocations_institution_year_id_fkey"; columns: ["institution_year_id"]; isOneToOne: false; referencedRelation: "institution_years"; referencedColumns: ["id"] },
+          { foreignKeyName: "stock_allocations_book_id_fkey"; columns: ["book_id"]; isOneToOne: false; referencedRelation: "books"; referencedColumns: ["id"] },
+        ]
+      }
       roles: {
         Row: {
           created_at: string
@@ -584,6 +700,31 @@ export type Database = {
           p_copied_from?: string
         }
         Returns: string
+      }
+      create_purchase_order: {
+        Args: { p_supplier: string; p_year: string; p_items: Json; p_notes?: string; p_expected?: string }
+        Returns: string
+      }
+      set_po_status: { Args: { p_po: string; p_status: string; p_note?: string }; Returns: undefined }
+      receive_po: { Args: { p_po: string; p_lines: Json; p_notes?: string }; Returns: string }
+      return_to_supplier: { Args: { p_po_item: string; p_qty: number; p_kind: string; p_reason?: string }; Returns: undefined }
+      adjust_stock: { Args: { p_book: string; p_qty: number; p_kind: string; p_reason: string }; Returns: undefined }
+      set_allocation: { Args: { p_iy: string; p_book: string; p_qty: number }; Returns: undefined }
+      stock_levels: {
+        Args: never
+        Returns: { book_id: string; on_hand: number; allocated: number; on_order: number; in_draft: number }[]
+      }
+      demand_by_institution: {
+        Args: { p_year: string }
+        Returns: {
+          institution_year_id: string
+          book_id: string
+          supplier_id: string | null
+          demand: number
+          allocated: number
+          ordered: number
+          ordered_draft: number
+        }[]
       }
       has_permission: { Args: { p: string }; Returns: boolean }
       is_active_user: { Args: never; Returns: boolean }

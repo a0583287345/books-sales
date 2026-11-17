@@ -43,6 +43,13 @@
   הרשאות, מועדי ביטול, מחירים מרשימת הכיתה ואי-שינוי סכומים; `order_history` כותב ל-`order_events`
 - `subtotal` משתנה רק עם `app.order_recalc`, `paid_amount` רק עם `app.payment_sync` (בתוך פונקציות במסד)
 
+## רכש ומלאי (שלב ג׳)
+- `src/lib/purchasing.ts` – סטטוסים, טיפוסים, `fetchStockLevels`/`fetchDemand`/`fetchIyNames`
+- מסכים: `purchase-orders/{page,plan/page,[id]/page}.tsx`, `receiving/page.tsx`, `inventory/page.tsx`
+- סטטוס הזמנת רכש רק דרך `rpc('set_po_status')` (`app.po_status`); מונים ב-`po_items` רק מהפונקציות (`app.po_internal`)
+- מלאי = סכום `stock_movements`; הקצאה = `stock_allocations` (דרך `set_allocation`); מסירה בשלב ד׳ תוסיף תנועת `delivered`
+  ותקטין את ההקצאה
+
 ## הרשאות (במסד)
 - `roles.permissions` / `user_profiles.permission_overrides` = `{perm: 'allowed'|'locked'|'hidden'}`; חסר = מוסתר.
   אפקטיבי = חריגה ?? תפקיד. תפקיד `is_super` – הכול מותר, לא נמחק, תמיד יש לפחות משתמש פעיל אחד בו.

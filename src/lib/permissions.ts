@@ -99,7 +99,8 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     title: 'מלאי',
     permissions: [
       { id: 'inventory_view', label: 'צפייה במלאי וחוסרים', kind: 'view' },
-      { id: 'inventory_adjust', label: 'תיקון מלאי ידני', kind: 'action' },
+      { id: 'inventory_adjust', label: 'מלאי פתיחה ותיקון מלאי ידני', kind: 'action' },
+      { id: 'inventory_allocate', label: 'הקצאת מלאי למוסדות', kind: 'action' },
     ],
   },
   {
