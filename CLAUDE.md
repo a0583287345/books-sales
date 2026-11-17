@@ -50,6 +50,13 @@
 - מלאי = סכום `stock_movements`; הקצאה = `stock_allocations` (דרך `set_allocation`); מסירה בשלב ד׳ תוסיף תנועת `delivered`
   ותקטין את ההקצאה
 
+## מחסן (שלב ד׳)
+- `src/lib/warehouse.ts` – סטטוסי שקית/משלוח, `fetchPackDetails`, `bagUrl` (QR = `/b/<קוד>`)
+- מסכים: `bags/{page,order/[id]/page,labels/page}.tsx`, `b/[code]/page.tsx`, `scan/page.tsx` (qr-scanner), `shipments/{page,[id]/page}.tsx`
+- כל שינוי בשקיות/משלוחים – רק דרך פונקציות במסד (אין מדיניות כתיבה על הטבלאות); נתונים לעובדים דרך פונקציות
+  definer (`packing_queue`, `order_pack_details`...) כדי שלא יצטרכו הרשאת הזמנות/לקוחות
+- **`apply_migration` שמעדכן פונקציות קיימות נדחה אוטומטית** – לבקש מהמשתמש להריץ את הקובץ ב-SQL Editor של Supabase
+
 ## הרשאות (במסד)
 - `roles.permissions` / `user_profiles.permission_overrides` = `{perm: 'allowed'|'locked'|'hidden'}`; חסר = מוסתר.
   אפקטיבי = חריגה ?? תפקיד. תפקיד `is_super` – הכול מותר, לא נמחק, תמיד יש לפחות משתמש פעיל אחד בו.

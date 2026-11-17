@@ -99,16 +99,19 @@
     דוח חוסרים לפי ספק, דוח למוסד – אקסל והדפסה)
   - הרשאה חדשה: `inventory_allocate`
   - נבדק במסד (טרנזקציה מבוטלת) ומול ה-API בשם משתמש זמני; נתוני הבדיקה נמחקו
-- [ ] **ד׳ – מחסן** (בעבודה, 2026-11-18):
-  - [x] טבלאות `bags`, `bag_items`, `institution_deliveries` + RLS – הוחלו (`20261118180000_phase_d_warehouse_tables.sql`)
-  - [ ] **ממתין לאישור המשתמש**: `20261118180100_phase_d_warehouse_functions.sql` (פונקציות האריזה/מסירה/משלוחים/דוחות
-        + עדכון `guard_orders`, `guard_order_items`, `set_allocation`). `apply_migration` נדחה שוב ושוב – צריך ללחוץ Allow
-        בחלון האישור, או להריץ את הקובץ ב-SQL Editor של Supabase.
-  - [x] מסכים (נבנו, build עובר, **commit מקומי – לא נדחף** עד שהפונקציות יוחלו ויבדקו):
-        הכנת שקיות (`/bags`), אריזת הזמנה (`/bags/order/[id]`), מדבקות A4 3×8 עם QR (`/bags/labels`),
-        קישור QR (`/b/[code]`), סריקה במצלמה (`/scan`, qr-scanner), מסירה ומשלוחים למוסדות (`/shipments`, `/shipments/[id]`
-        כולל דוח אספקה להדפסה עם חתימה)
-  - [ ] אחרי ההחלה: בדיקה מלאה במסד + מול ה-API, ואז push
+- [x] **ד׳ – מחסן** (2026-11-18):
+  - טבלאות `bags`, `bag_items`, `institution_deliveries` (`20261118180000_phase_d_warehouse_tables.sql`) ופונקציות
+    (`20261118180100_phase_d_warehouse_functions.sql` – **הורץ ידנית ע"י המשתמש ב-SQL Editor**, כי `apply_migration`
+    לשינויים שמעדכנים פונקציות קיימות נדחה אוטומטית)
+  - פונקציות: `save_bag`, `set_bag_status` (checked/ready/picking/cancelled/delivered), `mark_labels_printed`,
+    `save_delivery`, `assign_bags_to_delivery`, `set_delivery_status`, `packing_queue`, `pack_availability`,
+    `order_pack_details`, `bag_labels`, `find_orders_for_pickup`, `delivery_report`, `sync_order_from_bags`
+  - כללים: אריזה ≤ הקצאה למוסד; אין ביטול ספר ארוז / הזמנה עם שקיות; הקצאה ≥ ארוז; מסירה = תנועת `delivered` + הקטנת הקצאה;
+    סטטוס ההזמנה אוטומטי (בהכנה → מוכנה → הועברה ליום המכירה → נמסרה)
+  - מסכים: הכנת שקיות, אריזת הזמנה (טאבלט), מדבקות A4 3×8 עם QR, קישור QR `/b/[code]`, סריקה במצלמה,
+    מסירה ומשלוחים למוסדות + דוח אספקה עם חתימה
+  - נבדק במסד (טרנזקציה מבוטלת) ומול ה-API; נתוני הבדיקה נמחקו
+  - לשיפור בהמשך: סימון "חסר" על שקית ראשונה נשאר גם אחרי ששקית ההשלמה נארזה
 - [ ] **ה׳ – כספים ודוחות:** תשלומים, הוצאות, חובות, דשבורד, Excel והדפסה
 - [ ] **ו׳ – טלפוניה:** חיבור למענה קולי (ספק לבחירה)
 - [ ] **ז׳ – בדיקות והפעלה**
