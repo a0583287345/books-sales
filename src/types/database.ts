@@ -272,12 +272,16 @@ export type Database = {
           notes: string | null
           order_deadline: string | null
           sale_close_date: string | null
+          sale_day_date: string | null
+          sale_day_notes: string | null
           sale_open_date: string | null
           settings: Json
           updated_at: string
           year_id: string
         }
         Insert: {
+          sale_day_date?: string | null
+          sale_day_notes?: string | null
           cancel_deadline?: string | null
           created_at?: string
           id?: string
@@ -329,6 +333,131 @@ export type Database = {
         }
         Update: Partial<Database["public"]["Tables"]["institutions"]["Insert"]>
         Relationships: []
+      }
+      customer_students: {
+        Row: { id: string; customer_id: string; name: string; notes: string | null; created_at: string; updated_at: string }
+        Insert: { id?: string; customer_id: string; name: string; notes?: string | null; created_at?: string; updated_at?: string }
+        Update: Partial<Database["public"]["Tables"]["customer_students"]["Insert"]>
+        Relationships: [
+          { foreignKeyName: "customer_students_customer_id_fkey"; columns: ["customer_id"]; isOneToOne: false; referencedRelation: "customers"; referencedColumns: ["id"] },
+        ]
+      }
+      orders: {
+        Row: {
+          id: string
+          number: number
+          year_id: string
+          institution_year_id: string
+          class_id: string
+          customer_id: string
+          student_id: string | null
+          student_name: string
+          status: string
+          delivery_method: string
+          subtotal: number
+          discount: number
+          discount_reason: string | null
+          total: number
+          paid_amount: number
+          balance: number
+          source: string
+          copied_from: string | null
+          notes: string | null
+          cancelled_at: string | null
+          cancelled_by_name: string | null
+          cancel_reason: string | null
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          number?: number
+          year_id: string
+          institution_year_id: string
+          class_id: string
+          customer_id: string
+          student_id?: string | null
+          student_name: string
+          status?: string
+          delivery_method?: string
+          subtotal?: number
+          discount?: number
+          discount_reason?: string | null
+          paid_amount?: number
+          source?: string
+          copied_from?: string | null
+          notes?: string | null
+          cancelled_at?: string | null
+          cancelled_by_name?: string | null
+          cancel_reason?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          updated_at?: string
+        }
+        Update: Partial<Database["public"]["Tables"]["orders"]["Insert"]>
+        Relationships: [
+          { foreignKeyName: "orders_class_id_fkey"; columns: ["class_id"]; isOneToOne: false; referencedRelation: "classes"; referencedColumns: ["id"] },
+          { foreignKeyName: "orders_customer_id_fkey"; columns: ["customer_id"]; isOneToOne: false; referencedRelation: "customers"; referencedColumns: ["id"] },
+          { foreignKeyName: "orders_institution_year_id_fkey"; columns: ["institution_year_id"]; isOneToOne: false; referencedRelation: "institution_years"; referencedColumns: ["id"] },
+          { foreignKeyName: "orders_year_id_fkey"; columns: ["year_id"]; isOneToOne: false; referencedRelation: "academic_years"; referencedColumns: ["id"] },
+          { foreignKeyName: "orders_student_id_fkey"; columns: ["student_id"]; isOneToOne: false; referencedRelation: "customer_students"; referencedColumns: ["id"] },
+          { foreignKeyName: "orders_copied_from_fkey"; columns: ["copied_from"]; isOneToOne: false; referencedRelation: "orders"; referencedColumns: ["id"] },
+        ]
+      }
+      order_items: {
+        Row: {
+          id: string
+          order_id: string
+          book_id: string
+          class_book_id: string | null
+          qty: number
+          unit_price: number
+          is_required: boolean
+          order_deadline: string | null
+          cancel_deadline: string | null
+          status: string
+          cancelled_at: string | null
+          cancelled_by_name: string | null
+          cancel_reason: string | null
+          cancelled_late: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          order_id: string
+          book_id: string
+          class_book_id?: string | null
+          qty?: number
+          unit_price?: number
+          is_required?: boolean
+          order_deadline?: string | null
+          cancel_deadline?: string | null
+          status?: string
+          cancelled_at?: string | null
+          cancelled_by_name?: string | null
+          cancel_reason?: string | null
+          cancelled_late?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database["public"]["Tables"]["order_items"]["Insert"]>
+        Relationships: [
+          { foreignKeyName: "order_items_order_id_fkey"; columns: ["order_id"]; isOneToOne: false; referencedRelation: "orders"; referencedColumns: ["id"] },
+          { foreignKeyName: "order_items_book_id_fkey"; columns: ["book_id"]; isOneToOne: false; referencedRelation: "books"; referencedColumns: ["id"] },
+          { foreignKeyName: "order_items_class_book_id_fkey"; columns: ["class_book_id"]; isOneToOne: false; referencedRelation: "class_books"; referencedColumns: ["id"] },
+        ]
+      }
+      order_events: {
+        Row: { id: number; order_id: string; created_at: string; user_id: string | null; user_name: string | null; event: string; description: string }
+        Insert: { id?: never; order_id: string; created_at?: string; user_id?: string | null; user_name?: string | null; event: string; description: string }
+        Update: Partial<Database["public"]["Tables"]["order_events"]["Insert"]>
+        Relationships: [
+          { foreignKeyName: "order_events_order_id_fkey"; columns: ["order_id"]; isOneToOne: false; referencedRelation: "orders"; referencedColumns: ["id"] },
+        ]
       }
       roles: {
         Row: {
@@ -437,6 +566,22 @@ export type Database = {
           p_refresh_prices?: boolean
           p_source_year: string
           p_start?: string
+        }
+        Returns: string
+      }
+      create_order: {
+        Args: {
+          p_class_id: string
+          p_customer_id: string
+          p_student_name: string
+          p_items: Json
+          p_student_id?: string
+          p_delivery?: string
+          p_discount?: number
+          p_discount_reason?: string
+          p_notes?: string
+          p_source?: string
+          p_copied_from?: string
         }
         Returns: string
       }

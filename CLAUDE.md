@@ -35,6 +35,14 @@
   פעולה אחת שלמה, שורת סיכום אחת ביומן (`app.skip_row_audit`)
 - כל טבלה חדשה: טריגר `audit_row('<שם בעברית>')` + `set_updated_at` + RLS
 
+## הזמנות (שלב ב׳)
+- `src/lib/orders.ts` – סטטוסים, תוויות, טיפוסים, `fetchClassBookOptions`, `isPast` (תאריך ישראל)
+- מסכים: `src/app/(app)/orders/{page,new/page,[id]/page}.tsx`; `src/components/orders/` (CustomerPicker, OrderStatusBadge);
+  `src/components/customers/CustomerHistory.tsx` (ילדים + הזמנות בכרטיס הלקוח)
+- יצירה: `rpc('create_order')` בלבד. שינויים: update רגיל – הטריגרים `guard_orders` / `guard_order_items` אוכפים
+  הרשאות, מועדי ביטול, מחירים מרשימת הכיתה ואי-שינוי סכומים; `order_history` כותב ל-`order_events`
+- `subtotal` משתנה רק עם `app.order_recalc`, `paid_amount` רק עם `app.payment_sync` (בתוך פונקציות במסד)
+
 ## הרשאות (במסד)
 - `roles.permissions` / `user_profiles.permission_overrides` = `{perm: 'allowed'|'locked'|'hidden'}`; חסר = מוסתר.
   אפקטיבי = חריגה ?? תפקיד. תפקיד `is_super` – הכול מותר, לא נמחק, תמיד יש לפחות משתמש פעיל אחד בו.

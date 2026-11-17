@@ -85,11 +85,13 @@ export type InstitutionYear = {
   sale_close_date: string | null;
   order_deadline: string | null;
   cancel_deadline: string | null;
+  sale_day_date: string | null;
+  sale_day_notes: string | null;
   notes: string | null;
 };
 
 export const INSTITUTION_YEAR_COLUMNS =
-  'id, institution_id, year_id, sale_open_date, sale_close_date, order_deadline, cancel_deadline, notes';
+  'id, institution_id, year_id, sale_open_date, sale_close_date, order_deadline, cancel_deadline, sale_day_date, sale_day_notes, notes';
 
 export type ClassRow = {
   id: string;

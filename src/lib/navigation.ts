@@ -41,7 +41,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/books', label: 'קטלוג ספרים', icon: BookOpen, perm: 'books_view', ready: true },
   { href: '/suppliers', label: 'ספקים', icon: Boxes, perm: 'suppliers_view', ready: true },
   { href: '/customers', label: 'לקוחות', icon: Users, perm: 'customers_view', ready: true },
-  { href: '/orders', label: 'הזמנות', icon: ShoppingCart, perm: 'orders_view', ready: false },
+  { href: '/orders', label: 'הזמנות', icon: ShoppingCart, perm: 'orders_view', ready: true },
   { href: '/purchase-orders', label: 'הזמנות רכש', icon: PackageOpen, perm: 'po_view', ready: false },
   { href: '/receiving', label: 'קליטת סחורה', icon: PackageCheck, perm: 'receiving_do', ready: false },
   { href: '/inventory', label: 'מלאי וחוסרים', icon: Warehouse, perm: 'inventory_view', ready: false },

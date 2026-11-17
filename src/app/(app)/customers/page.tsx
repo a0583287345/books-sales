@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/components/AuthContext';
 import { LockedText, PageGuard, Protect } from '@/components/Protect';
 import PhoneLink from '@/components/PhoneLink';
+import { CustomerChildren, CustomerOrders } from '@/components/customers/CustomerHistory';
 import { Button, EmptyState, Field, inputClass, Modal, PageHeader, Spinner } from '@/components/ui';
 import { toast } from '@/components/Toaster';
 import { dbErrorMessage } from '@/lib/dbErrors';
@@ -343,12 +344,8 @@ function CustomerModal({
         </fieldset>
       </Protect>
 
-      {customer && (
-        <div className="rounded-xl bg-white p-4 text-sm text-slate-500">
-          <h3 className="mb-1 font-semibold text-slate-700">היסטוריה</h3>
-          היסטוריית ההזמנות, התשלומים והמסירות (לפי שנה, מוסד וכיתה) תופיע כאן אחרי שייבנו ההזמנות בשלב ב׳.
-        </div>
-      )}
+      {customer && <CustomerChildren customerId={customer.id} />}
+      {customer && <CustomerOrders customerId={customer.id} />}
     </Modal>
   );
 }

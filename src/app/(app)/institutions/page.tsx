@@ -316,6 +316,8 @@ function InstitutionModal({
     sale_close_date: iy?.sale_close_date ?? '',
     order_deadline: iy?.order_deadline ?? '',
     cancel_deadline: iy?.cancel_deadline ?? '',
+    sale_day_date: iy?.sale_day_date ?? '',
+    sale_day_notes: iy?.sale_day_notes ?? '',
     notes: iy?.notes ?? '',
   });
   const [saving, setSaving] = useState(false);
@@ -342,6 +344,8 @@ function InstitutionModal({
       sale_close_date: nullIfEmpty(sale.sale_close_date),
       order_deadline: nullIfEmpty(sale.order_deadline),
       cancel_deadline: nullIfEmpty(sale.cancel_deadline),
+      sale_day_date: nullIfEmpty(sale.sale_day_date),
+      sale_day_notes: nullIfEmpty(sale.sale_day_notes),
       notes: nullIfEmpty(sale.notes),
     };
 
@@ -467,6 +471,12 @@ function InstitutionModal({
           </Field>
           <Field label="מועד אחרון לביטול" hint="ברירת מחדל לכל הספרים">
             <DateInput value={sale.cancel_deadline} onChange={(v) => setS('cancel_deadline', v)} disabled={!canEditSale} />
+          </Field>
+          <Field label="יום מכירה מרוכז במוסד">
+            <DateInput value={sale.sale_day_date} onChange={(v) => setS('sale_day_date', v)} disabled={!canEditSale} />
+          </Field>
+          <Field label="פרטי יום המכירה (שעות, מקום)" className="sm:col-span-3">
+            <input className={inputClass} value={sale.sale_day_notes} onChange={(e) => setS('sale_day_notes', e.target.value)} />
           </Field>
           <Field label="הערות למכירה השנה" className="sm:col-span-4">
             <textarea className={inputClass} rows={2} value={sale.notes} onChange={(e) => setS('notes', e.target.value)} />
