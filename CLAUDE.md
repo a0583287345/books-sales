@@ -10,12 +10,30 @@
 - המוסכמות והכלים זהים לפרויקט `../ateret-zvi-donors` – כשמקימים רכיב משותף (AuthContext, Protect, Toaster,
   DateInput, PhoneLink, logger, permissions) לבנות אותו באותה צורה.
 
+## מבנה
+- `src/app/(app)/` – כל המסכים הפנימיים בתוך `AppShell` (תפריט צד לפי הרשאות, `src/lib/navigation.ts`)
+- `src/app/login/` – התחברות; `src/proxy.ts` – משתמש לא מחובר מועבר ל-`/login` (בצד השרת)
+- `src/lib/permissions.ts` – **רשימת כל ההרשאות (מקור יחיד)** + `effectiveState` (זהה ל-`permission_state` במסד)
+- `src/components/AuthContext.tsx` – `useAuth()`: `access` (מ-`rpc('my_access')`), `stateOf`, `hasPermission`, `requirePermission`
+- `src/components/Protect.tsx` – `<Protect permId>` (מותר/חסום/מוסתר), `LockedText`, `LockedPage`
+- `src/components/settings/` – `UsersTab`, `RolesTab`, `AuditLogTab`, `PermissionEditor` (עורך 3 מצבים / חריגות)
+- `src/app/api/admin/users/route.ts` – יצירה/איפוס סיסמה/השבתה/מחיקה. service_role **רק** ל-auth;
+  כתיבה לטבלאות דרך `userClient(token)` כדי שהטריגרים במסד יאכפו
+- `src/lib/logger.ts` – `logActivity(action, entity, description)`; שם המשתמש נקבע בטריגר במסד
+- `src/types/database.ts` – טיפוסים שנוצרו מהמסד (לייצר מחדש אחרי שינוי סכמה)
+
+## הרשאות (במסד)
+- `roles.permissions` / `user_profiles.permission_overrides` = `{perm: 'allowed'|'locked'|'hidden'}`; חסר = מוסתר.
+  אפקטיבי = חריגה ?? תפקיד. תפקיד `is_super` – הכול מותר, לא נמחק, תמיד יש לפחות משתמש פעיל אחד בו.
+- מי שאינו is_super: לא משנה את עצמו/את התפקיד שלו/מנהלת ראשית, ולא מעניק הרשאה שאין לו (`assert_can_grant`).
+- כל טבלה חדשה: RLS עם `(select public.has_permission('<perm>'))`.
+
 ## Stack
 - Next.js 16.4 (App Router) + React 19.2 + TypeScript 5
 - Tailwind CSS 4 (דרך `@tailwindcss/postcss`), אייקונים: `lucide-react`, פונט Heebo
-- Supabase (פרויקט נפרד – עדיין לא הוקם): Auth, Postgres + RLS, Storage פרטי
+- Supabase (פרויקט `books-sales`, id `euiqpqdfowbpipqlwzgi`): Auth, Postgres + RLS, Storage פרטי
 - `xlsx` לייצוא לאקסל
-- פריסה: Vercel (פרויקט נפרד). פיתוח: VS Code, Windows
+- פריסה: Vercel – https://books-sales.vercel.app, כל push ל-main עולה לפרודקשן. פיתוח: VS Code, Windows
 
 ## פקודות
 - `npm run dev` – שרת פיתוח (http://localhost:3000)

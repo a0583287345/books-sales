@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Heebo, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
+import { AuthProvider } from "@/components/AuthContext";
+import { Toaster } from "@/components/Toaster";
+
 // פונט עברי נוח לקריאה
 const heebo = Heebo({
   variable: "--font-heebo",
@@ -27,7 +30,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       dir="rtl"
       className={`${heebo.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <AuthProvider>{children}</AuthProvider>
+        <Toaster />
+      </body>
     </html>
   );
 }
