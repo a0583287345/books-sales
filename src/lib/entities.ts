@@ -88,10 +88,13 @@ export type InstitutionYear = {
   sale_day_date: string | null;
   sale_day_notes: string | null;
   notes: string | null;
+  /** למיילים ולהזמנה בקישור; ריק = ברירת המחדל בהגדרות המייל */
+  payment_instructions: string | null;
+  pickup_info: string | null;
 };
 
 export const INSTITUTION_YEAR_COLUMNS =
-  'id, institution_id, year_id, sale_open_date, sale_close_date, order_deadline, cancel_deadline, sale_day_date, sale_day_notes, notes';
+  'id, institution_id, year_id, sale_open_date, sale_close_date, order_deadline, cancel_deadline, sale_day_date, sale_day_notes, notes, payment_instructions, pickup_info';
 
 export type ClassRow = {
   id: string;
@@ -100,6 +103,9 @@ export type ClassRow = {
   student_count: number | null;
   sort_order: number;
   notes: string | null;
+  /** ריק = לפי המוסד */
+  payment_instructions: string | null;
+  pickup_info: string | null;
 };
 
-export const CLASS_COLUMNS = 'id, institution_year_id, name, student_count, sort_order, notes';
+export const CLASS_COLUMNS = 'id, institution_year_id, name, student_count, sort_order, notes, payment_instructions, pickup_info';

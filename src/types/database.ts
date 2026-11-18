@@ -423,6 +423,8 @@ export type Database = {
           institution_year_id: string
           name: string
           notes: string | null
+          payment_instructions: string | null
+          pickup_info: string | null
           sort_order: number
           student_count: number | null
           updated_at: string
@@ -433,6 +435,8 @@ export type Database = {
           institution_year_id: string
           name: string
           notes?: string | null
+          payment_instructions?: string | null
+          pickup_info?: string | null
           sort_order?: number
           student_count?: number | null
           updated_at?: string
@@ -443,6 +447,8 @@ export type Database = {
           institution_year_id?: string
           name?: string
           notes?: string | null
+          payment_instructions?: string | null
+          pickup_info?: string | null
           sort_order?: number
           student_count?: number | null
           updated_at?: string
@@ -865,6 +871,8 @@ export type Database = {
           institution_id: string
           notes: string | null
           order_deadline: string | null
+          payment_instructions: string | null
+          pickup_info: string | null
           sale_close_date: string | null
           sale_day_date: string | null
           sale_day_notes: string | null
@@ -880,6 +888,8 @@ export type Database = {
           institution_id: string
           notes?: string | null
           order_deadline?: string | null
+          payment_instructions?: string | null
+          pickup_info?: string | null
           sale_close_date?: string | null
           sale_day_date?: string | null
           sale_day_notes?: string | null
@@ -895,6 +905,8 @@ export type Database = {
           institution_id?: string
           notes?: string | null
           order_deadline?: string | null
+          payment_instructions?: string | null
+          pickup_info?: string | null
           sale_close_date?: string | null
           sale_day_date?: string | null
           sale_day_notes?: string | null
@@ -2029,6 +2041,7 @@ export type Database = {
       my_access: { Args: never; Returns: Json }
       my_full_name: { Args: never; Returns: string }
       my_role_id: { Args: never; Returns: string }
+      order_email_data: { Args: { p_orders: string[] }; Returns: Json }
       order_pack_details: { Args: { p_order: string }; Returns: Json }
       order_packed_qty: { Args: { p_order: string }; Returns: number }
       order_status_label: { Args: { s: string }; Returns: string }

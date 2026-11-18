@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { AlertTriangle, ArrowRight, Ban, Copy, History, Minus, Plus, Printer, RotateCcw, Save } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Ban, Copy, History, Mail, Minus, Plus, Printer, RotateCcw, Save } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/components/AuthContext';
 import { PageGuard, Protect } from '@/components/Protect';
 import PhoneLink from '@/components/PhoneLink';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { OrderPayments } from '@/components/finance/OrderPayments';
+import { OrderEmailModal } from '@/components/email/OrderEmailModal';
 import { Button, EmptyState, Field, inputClass, Modal, Spinner } from '@/components/ui';
 import { toast } from '@/components/Toaster';
 import { dbErrorMessage } from '@/lib/dbErrors';
@@ -98,6 +99,7 @@ function OrderScreen() {
   const [data, setData] = useState<Awaited<ReturnType<typeof fetchOrder>> | undefined>(undefined);
   const [cancelTarget, setCancelTarget] = useState<ItemRow | 'order' | null>(null);
   const [adding, setAdding] = useState(false);
+  const [mailIds, setMailIds] = useState<string[] | null>(null);
 
   const reload = useCallback(async () => setData(await fetchOrder(id)), [id]);
   useEffect(() => {
@@ -158,6 +160,13 @@ function OrderScreen() {
             <Copy className="h-4 w-4" /> העתקת ההזמנה
           </Button>
         </Protect>
+        {order.status !== 'cancelled' && (
+          <Protect permId="emails_send" lockedFallback={null}>
+            <Button variant="secondary" onClick={() => setMailIds([order.id])}>
+              <Mail className="h-4 w-4" /> שליחת מייל
+            </Button>
+          </Protect>
+        )}
         <Button variant="secondary" onClick={() => window.print()}>
           <Printer className="h-4 w-4" /> הדפסה
         </Button>
@@ -382,6 +391,14 @@ function OrderScreen() {
         </ul>
       </div>
 
+      {mailIds && (
+        <OrderEmailModal
+          orderIds={mailIds}
+          initialMode={order.balance > 0 && order.status !== 'ready' ? 'payment_reminder' : 'ready'}
+          scopeLabel={'הזמנה ' + order.number}
+          onClose={() => setMailIds(null)}
+        />
+      )}
       {cancelTarget && (
         <CancelModal
           target={cancelTarget}

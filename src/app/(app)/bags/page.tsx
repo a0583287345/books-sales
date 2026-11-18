@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Check, Printer, ScanLine } from 'lucide-react';
+import { Check, Mail, Printer, ScanLine } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useYear } from '@/components/YearContext';
 import { PageGuard, Protect } from '@/components/Protect';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { Button, EmptyState, Modal, PageHeader, Spinner } from '@/components/ui';
+import { OrderEmailModal } from '@/components/email/OrderEmailModal';
 import { FilterStatus, heCompare, matches, MultiSelect, SearchBox, SortSelect, useStoredState } from '@/components/filters';
 import { toast } from '@/components/Toaster';
 import { dbErrorMessage } from '@/lib/dbErrors';
@@ -76,6 +77,7 @@ function BagsScreen() {
   const [availByIy, setAvailByIy] = useState<Map<string, number>>(new Map());
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [printing, setPrinting] = useState(false);
+  const [mailIds, setMailIds] = useState<string[] | null>(null);
   const yearId = year?.id ?? null;
   const [f, setF] = useStoredState(yearId ? `bags:${yearId}` : null, DEFAULT_FILTERS);
   const view = f.view;
@@ -173,6 +175,12 @@ function BagsScreen() {
         <Link href="/scan" className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50">
           <ScanLine className="h-4 w-4" /> סריקה
         </Link>
+        <Protect permId="emails_send" lockedFallback={null}>
+          <Button variant="secondary" onClick={() => setMailIds(printScope.map((r) => r.order_id))} disabled={!filtered.length} title="ההזמנה מוכנה – להזמנות שנבחרו, או לכל הרשימה המסוננת">
+            <Mail className="h-4 w-4" /> מייל: ההזמנה מוכנה
+            {shownSelected.length > 0 ? ` (${shownSelected.length})` : ''}
+          </Button>
+        </Protect>
         <Protect permId="labels_print">
           <Button variant="secondary" onClick={() => setPrinting(true)} disabled={!filtered.length}>
             <Printer className="h-4 w-4" /> הדפסת מדבקות
@@ -274,6 +282,13 @@ function BagsScreen() {
             </tbody>
           </table>
         </div>
+      )}
+      {mailIds && (
+        <OrderEmailModal
+          orderIds={mailIds}
+          scopeLabel={shownSelected.length ? mailIds.length + ' הזמנות שנבחרו' : mailIds.length + ' הזמנות' + (filterActive ? ' (לפי הסינון)' : '')}
+          onClose={() => setMailIds(null)}
+        />
       )}
       {printing && (
         <PrintLabelsModal

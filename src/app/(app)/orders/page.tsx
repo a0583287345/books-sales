@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FileSpreadsheet, Plus } from 'lucide-react';
+import { FileSpreadsheet, Mail, Plus } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useYear } from '@/components/YearContext';
 import { PageGuard, Protect } from '@/components/Protect';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { Button, EmptyState, PageHeader, Spinner } from '@/components/ui';
+import { OrderEmailModal } from '@/components/email/OrderEmailModal';
 import { FilterStatus, heCompare, matches, MultiSelect, SearchBox, SortSelect, useStoredState } from '@/components/filters';
 import { toast } from '@/components/Toaster';
 import { dbErrorMessage } from '@/lib/dbErrors';
@@ -59,6 +60,7 @@ function OrdersScreen() {
   const router = useRouter();
   const [orders, setOrders] = useState<OrderListRow[] | null>(null);
   const [search, setSearch] = useState('');
+  const [mailIds, setMailIds] = useState<string[] | null>(null);
   const yearId = year?.id ?? null;
   const [f, setF] = useStoredState(yearId ? `orders:${yearId}` : null, DEFAULT_FILTERS);
   useEffect(() => {
@@ -174,6 +176,16 @@ function OrdersScreen() {
             <FileSpreadsheet className="h-4 w-4" /> אקסל
           </Button>
         </Protect>
+        <Protect permId="emails_send" lockedFallback={null}>
+          <Button
+            variant="secondary"
+            onClick={() => setMailIds(filtered.filter((o) => o.status !== 'cancelled').map((o) => o.id))}
+            disabled={!filtered.some((o) => o.status !== 'cancelled')}
+            title="ההזמנה מוכנה / תזכורת תשלום – להזמנות שברשימה (לפי הסינון)"
+          >
+            <Mail className="h-4 w-4" /> שליחת מייל
+          </Button>
+        </Protect>
         <Protect permId="orders_create">
           <Button onClick={() => router.push('/orders/new')}>
             <Plus className="h-4 w-4" /> הזמנה חדשה
@@ -263,6 +275,14 @@ function OrdersScreen() {
             </tbody>
           </table>
         </div>
+      )}
+      {mailIds && (
+        <OrderEmailModal
+          orderIds={mailIds}
+          initialMode={f.pay.length === 1 && f.pay[0] === 'debt' ? 'payment_reminder' : 'ready'}
+          scopeLabel={`${mailIds.length} הזמנות${filterActive ? ' (לפי הסינון)' : ''}`}
+          onClose={() => setMailIds(null)}
+        />
       )}
     </div>
   );

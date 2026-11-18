@@ -336,6 +336,8 @@ function InstitutionModal({
     sale_day_date: iy?.sale_day_date ?? '',
     sale_day_notes: iy?.sale_day_notes ?? '',
     notes: iy?.notes ?? '',
+    payment_instructions: iy?.payment_instructions ?? '',
+    pickup_info: iy?.pickup_info ?? '',
   });
   const [saving, setSaving] = useState(false);
   const set = (k: keyof typeof form, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }));
@@ -364,6 +366,8 @@ function InstitutionModal({
       sale_day_date: nullIfEmpty(sale.sale_day_date),
       sale_day_notes: nullIfEmpty(sale.sale_day_notes),
       notes: nullIfEmpty(sale.notes),
+      payment_instructions: nullIfEmpty(sale.payment_instructions),
+      pickup_info: nullIfEmpty(sale.pickup_info),
     };
 
     let instId = inst?.id;
@@ -497,6 +501,12 @@ function InstitutionModal({
           </Field>
           <Field label="הערות למכירה השנה" className="sm:col-span-4">
             <textarea className={inputClass} rows={2} value={sale.notes} onChange={(e) => setS('notes', e.target.value)} />
+          </Field>
+          <Field label="הוראות תשלום (במיילים ובהזמנה בקישור)" hint="ריק = ברירת המחדל בהגדרות המייל. אפשר לקבוע אחרת לכיתה" className="sm:col-span-2">
+            <textarea className={inputClass} rows={3} value={sale.payment_instructions} onChange={(e) => setS('payment_instructions', e.target.value)} placeholder={'תשלום בביט למספר ...\nאו במזומן/צ׳ק באיסוף'} />
+          </Field>
+          <Field label="פרטי איסוף (במיילים)" hint="כתובת, ימים ושעות. ריק = ברירת המחדל" className="sm:col-span-2">
+            <textarea className={inputClass} rows={3} value={sale.pickup_info} onChange={(e) => setS('pickup_info', e.target.value)} />
           </Field>
         </div>
       </fieldset>

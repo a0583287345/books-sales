@@ -738,6 +738,8 @@ function ClassModal({
     student_count: cls?.student_count?.toString() ?? '',
     sort_order: (cls?.sort_order ?? nextOrder + 1).toString(),
     notes: cls?.notes ?? '',
+    payment_instructions: cls?.payment_instructions ?? '',
+    pickup_info: cls?.pickup_info ?? '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -749,6 +751,8 @@ function ClassModal({
       student_count: toNumber(form.student_count),
       sort_order: toNumber(form.sort_order) ?? 0,
       notes: nullIfEmpty(form.notes),
+      payment_instructions: nullIfEmpty(form.payment_instructions),
+      pickup_info: nullIfEmpty(form.pickup_info),
     };
     const { data, error } = cls
       ? await supabase.from('classes').update(payload).eq('id', cls.id).select('id').single()
@@ -783,6 +787,12 @@ function ClassModal({
         </Field>
         <Field label="הערות" className="sm:col-span-3">
           <textarea className={inputClass} rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+        </Field>
+        <Field label="הוראות תשלום לכיתה" hint="רק אם שונה מהמוסד (ריק = לפי המוסד)" className="sm:col-span-3">
+          <textarea className={inputClass} rows={2} value={form.payment_instructions} onChange={(e) => setForm({ ...form, payment_instructions: e.target.value })} />
+        </Field>
+        <Field label="פרטי איסוף לכיתה" hint="רק אם שונה מהמוסד (ריק = לפי המוסד)" className="sm:col-span-3">
+          <textarea className={inputClass} rows={2} value={form.pickup_info} onChange={(e) => setForm({ ...form, pickup_info: e.target.value })} />
         </Field>
       </div>
     </Modal>
