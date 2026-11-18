@@ -57,7 +57,7 @@ export function LockedPage({ permId }: { permId: string }) {
     <div className="flex flex-1 flex-col items-center justify-center gap-3 p-10 text-center text-slate-500">
       <Lock className="w-10 h-10 text-slate-400" />
       <p className="text-lg font-medium">{deniedMessage(permId)}</p>
-      <p className="text-sm">לקבלת גישה יש לפנות למנהלת המערכת.</p>
+      <p className="text-sm">לקבלת גישה יש לפנות למנהל המערכת.</p>
     </div>
   );
 }

@@ -36,7 +36,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
         <UserX className="w-12 h-12 text-slate-400" />
         <p className="text-lg font-medium">המשתמש שלך לא פעיל או שלא שויך לתפקיד.</p>
-        <p className="text-sm text-slate-500">יש לפנות למנהלת המערכת.</p>
+        <p className="text-sm text-slate-500">יש לפנות למנהל המערכת.</p>
         <button onClick={signOut} className="rounded-lg bg-slate-800 px-4 py-2 text-white">
           יציאה
         </button>

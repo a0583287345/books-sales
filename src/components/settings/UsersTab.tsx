@@ -172,7 +172,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 }
 
 function assignableRoles(roles: RoleRow[], isSuper: boolean) {
-  // רק המנהלת הראשית יכולה לשייך לתפקיד המנהלת הראשית
+  // רק המנהל הראשי יכולה לשייך לתפקיד המנהל הראשי
   return roles.filter((r) => isSuper || !r.is_super);
 }
 
@@ -255,7 +255,7 @@ function EditUserModal({
   const { access, hasPermission, refresh } = useAuth();
   const isSelf = user.id === access?.userId;
   const userRole = roles.find((r) => r.id === user.role_id);
-  // מי שאינו מנהלת ראשית: לא עורך את עצמו ולא מנהלת ראשית (כך גם נאכף במסד)
+  // מי שאינו מנהל ראשי: לא עורך את עצמו ולא מנהל ראשי (כך גם נאכף במסד)
   const locked = !access?.isSuper && (isSelf || !!userRole?.is_super);
 
   const [fullName, setFullName] = useState(user.full_name);
@@ -300,7 +300,7 @@ function EditUserModal({
     <Modal title={`עריכת משתמש: ${user.full_name}`} onClose={onClose}>
       {locked && (
         <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          {isSelf ? 'אי אפשר לשנות את המשתמש שלך עצמך.' : 'רק המנהלת הראשית יכולה לשנות משתמש בתפקיד הזה.'}
+          {isSelf ? 'אי אפשר לשנות את המשתמש שלך עצמך.' : 'רק המנהל הראשי יכולה לשנות משתמש בתפקיד הזה.'}
         </p>
       )}
 
@@ -385,7 +385,7 @@ function EditUserModal({
         </h3>
         {selectedRole?.is_super ? (
           <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            למנהלת הראשית מותר הכול – אין צורך בחריגות.
+            למנהל הראשי מותר הכול – אין צורך בחריגות.
           </p>
         ) : (
           <>

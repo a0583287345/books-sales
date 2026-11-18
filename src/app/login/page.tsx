@@ -20,7 +20,7 @@ export default function LoginPage() {
 
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     if (error) {
-      setError(/banned/i.test(error.message) ? 'המשתמש הושבת. יש לפנות למנהלת המערכת.' : 'האימייל או הסיסמה שגויים.');
+      setError(/banned/i.test(error.message) ? 'המשתמש הושבת. יש לפנות למנהל המערכת.' : 'האימייל או הסיסמה שגויים.');
       setLoading(false);
       return;
     }
