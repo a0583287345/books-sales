@@ -444,7 +444,7 @@ function PaymentsTab({ yearId, yearName }: { yearId: string; yearName: string })
 
 // ---------------------------------------------------------------------
 
-type Balance = { supplier_id: string; received_value: number; paid: number; balance: number; missing_cost_items: number };
+type Balance = { supplier_id: string; received_value: number; credited?: number; paid: number; balance: number; missing_cost_items: number };
 type SupPay = { id: string; supplier_id: string; amount: number; method: string; paid_at: string; reference: string | null; notes: string | null; voided: boolean; void_reason: string | null; created_by_name: string | null };
 
 function SuppliersTab({ yearId, yearName }: { yearId: string; yearName: string }) {
@@ -482,7 +482,7 @@ function SuppliersTab({ yearId, yearName }: { yearId: string; yearName: string }
   }, [load, apply]);
 
   const name = new Map(suppliers.map((s) => [s.id, s.name]));
-  const totals = (balances ?? []).reduce((a, b) => ({ v: a.v + b.received_value, p: a.p + b.paid, o: a.o + b.balance }), { v: 0, p: 0, o: 0 });
+  const totals = (balances ?? []).reduce((a, b) => ({ v: a.v + b.received_value, c: a.c + (b.credited ?? 0), p: a.p + b.paid, o: a.o + b.balance }), { v: 0, c: 0, p: 0, o: 0 });
 
   const voidPay = async (p: SupPay) => {
     const reason = window.prompt('סיבת הביטול:');
@@ -497,7 +497,7 @@ function SuppliersTab({ yearId, yearName }: { yearId: string; yearName: string }
     exportToExcel(`יתרות ספקים – ${allYears ? 'כל השנים' : yearName}`, [
       {
         name: 'יתרות',
-        rows: (balances ?? []).map((b) => ({ ספק: name.get(b.supplier_id), 'שווי שהתקבל': b.received_value, שולם: b.paid, 'יתרה (חוב / זכות)': b.balance })),
+        rows: (balances ?? []).map((b) => ({ ספק: name.get(b.supplier_id), 'שווי שהתקבל': b.received_value, 'זיכויים על החזרות': b.credited ?? 0, שולם: b.paid, 'יתרה (חוב / זכות)': b.balance })),
       },
       {
         name: 'תשלומים',
@@ -520,7 +520,7 @@ function SuppliersTab({ yearId, yearName }: { yearId: string; yearName: string }
         </Protect>
       </div>
       <p className="text-xs text-slate-500">
-        שווי שהתקבל = כמות שנקלטה × מחיר הקנייה בהזמנת הרכש (פחות עודפים שהוחזרו). יתרה שלילית = שולם מראש.
+        שווי שהתקבל = כמות שנקלטה × מחיר הקנייה בהזמנת הרכש. זיכויים = החזרות שסומנו &quot;זוכה&quot; במסך החזרות לספקים. יתרה שלילית = שולם מראש.
       </p>
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-sm">
@@ -528,6 +528,7 @@ function SuppliersTab({ yearId, yearName }: { yearId: string; yearName: string }
             <tr>
               <th className="px-3 py-2 text-right">ספק</th>
               <th className="px-3 py-2 text-right">שווי שהתקבל</th>
+              <th className="px-3 py-2 text-right">זיכויים</th>
               <th className="px-3 py-2 text-right">שולם</th>
               <th className="px-3 py-2 text-right">יתרה</th>
               <th className="px-3 py-2" />
@@ -541,6 +542,7 @@ function SuppliersTab({ yearId, yearName }: { yearId: string; yearName: string }
                   {b.missing_cost_items > 0 && <div className="text-xs text-amber-700">{b.missing_cost_items} ספרים בלי מחיר קנייה – השווי חלקי</div>}
                 </td>
                 <td className="px-3 py-2">{money(b.received_value)}</td>
+                <td className="px-3 py-2">{b.credited ? money(b.credited) : '—'}</td>
                 <td className="px-3 py-2">{money(b.paid)}</td>
                 <td className={`px-3 py-2 font-bold ${b.balance > 0 ? 'text-red-600' : b.balance < 0 ? 'text-amber-700' : 'text-slate-400'}`}>
                   {b.balance < 0 ? `זכות ${money(-b.balance)}` : money(b.balance)}
@@ -557,6 +559,7 @@ function SuppliersTab({ yearId, yearName }: { yearId: string; yearName: string }
             <tr className="bg-slate-50 font-bold">
               <td className="px-3 py-2">סה״כ</td>
               <td className="px-3 py-2">{money(totals.v)}</td>
+              <td className="px-3 py-2">{money(totals.c)}</td>
               <td className="px-3 py-2">{money(totals.p)}</td>
               <td className="px-3 py-2">{money(totals.o)}</td>
               <td />

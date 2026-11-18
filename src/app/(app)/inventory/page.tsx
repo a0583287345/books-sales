@@ -14,7 +14,7 @@ import { ImportButton, ImportExcelModal } from '@/components/ImportExcelModal';
 import { stockImporter } from '@/lib/importers';
 import { formatDate, normalizeSearch, toNumber } from '@/lib/format';
 import { fetchBooks, fetchSuppliers, type Book } from '@/lib/entities';
-import { fetchDemand, fetchIyNames, fetchStockLevels, type DemandRow, type IyName, type StockLevel } from '@/lib/purchasing';
+import { fetchDemand, fetchIyNames, fetchStockLevels, missingOf, openNeedOf, type DemandRow, type IyName, type StockLevel } from '@/lib/purchasing';
 
 export default function InventoryPage() {
   return (
@@ -123,18 +123,20 @@ type BookSummary = {
   allocated: number;
   free: number;
   demand: number;
-  missing: number; // נדרש − הוקצה
+  delivered: number;
+  missing: number; // נדרש − נמסר − הוקצה
   onOrder: number;
   inDraft: number;
   toOrder: number; // חסר שלא מכוסה ע"י מלאי פנוי והזמנות פתוחות
 };
 
 function summarize(data: Data): BookSummary[] {
-  const demandByBook = new Map<string, { demand: number; allocated: number }>();
+  const demandByBook = new Map<string, { demand: number; delivered: number; missing: number }>();
   for (const d of data.demand) {
-    const e = demandByBook.get(d.book_id) ?? { demand: 0, allocated: 0 };
+    const e = demandByBook.get(d.book_id) ?? { demand: 0, delivered: 0, missing: 0 };
     e.demand += d.demand;
-    e.allocated += Math.min(d.allocated, d.demand);
+    e.delivered += d.delivered;
+    e.missing += missingOf(d);
     demandByBook.set(d.book_id, e);
   }
   const ids = new Set([...demandByBook.keys(), ...data.stock.keys()]);
@@ -143,14 +145,14 @@ function summarize(data: Data): BookSummary[] {
       const book = data.books.get(id);
       if (!book) return null;
       const s = data.stock.get(id);
-      const dm = demandByBook.get(id) ?? { demand: 0, allocated: 0 };
+      const dm = demandByBook.get(id) ?? { demand: 0, delivered: 0, missing: 0 };
       const onHand = s?.on_hand ?? 0;
       const allocated = s?.allocated ?? 0;
       const free = onHand - allocated;
-      const missing = Math.max(dm.demand - dm.allocated, 0);
+      const missing = dm.missing;
       const onOrder = s?.on_order ?? 0;
       const inDraft = s?.in_draft ?? 0;
-      return { book, onHand, allocated, free, demand: dm.demand, missing, onOrder, inDraft, toOrder: Math.max(missing - free - onOrder - inDraft, 0) };
+      return { book, onHand, allocated, free, demand: dm.demand, delivered: dm.delivered, missing, onOrder, inDraft, toOrder: Math.max(missing - free - onOrder - inDraft, 0) };
     })
     .filter((x): x is BookSummary => !!x)
     .sort((a, b) => a.book.name.localeCompare(b.book.name, 'he'));
@@ -184,6 +186,7 @@ function StockTab({ data, onChanged }: { data: Data; onChanged: () => void }) {
           'מוקצה למוסדות': r.allocated,
           'פנוי': r.free,
           'נדרש בהזמנות': r.demand,
+          'נמסר': r.delivered,
           'חסר למוסדות': r.missing,
           'בהזמנות רכש פתוחות': r.onOrder,
           'בטיוטות': r.inDraft,
@@ -253,7 +256,10 @@ function StockTab({ data, onChanged }: { data: Data; onChanged: () => void }) {
                   <td className="px-3 py-2 font-medium">{r.onHand}</td>
                   <td className="px-3 py-2">{r.allocated}</td>
                   <td className={`px-3 py-2 ${r.free > 0 ? 'font-medium text-emerald-700' : r.free < 0 ? 'text-red-600' : 'text-slate-400'}`}>{r.free}</td>
-                  <td className="px-3 py-2">{r.demand}</td>
+                  <td className="px-3 py-2">
+                    {r.demand}
+                    {r.delivered > 0 && <div className="text-xs text-slate-400">נמסרו {r.delivered}</div>}
+                  </td>
                   <td className={`px-3 py-2 ${r.missing ? 'font-medium text-red-600' : 'text-slate-400'}`}>{r.missing}</td>
                   <td className="px-3 py-2">
                     {r.onOrder}
@@ -284,7 +290,7 @@ function StockTab({ data, onChanged }: { data: Data; onChanged: () => void }) {
         </div>
       )}
       <p className="text-xs text-slate-400">
-        &quot;עוד להזמין&quot; = חסר למוסדות פחות המלאי הפנוי ומה שכבר בהזמנות רכש (כולל טיוטות). הקצאה = שיוך ספרים מהמלאי למוסד.
+        &quot;חסר למוסדות&quot; = נדרש פחות מה שכבר נמסר ומה שמוקצה. &quot;עוד להזמין&quot; = חסר למוסדות פחות המלאי הפנוי ומה שכבר בהזמנות רכש (כולל טיוטות). הקצאה = שיוך ספרים מהמלאי למוסד.
       </p>
 
       {(adjusting || addingOpening) && (
@@ -422,7 +428,7 @@ function AllocateModal({ summary, data, onClose, onDone }: { summary: BookSummar
     let left = available;
     const next: Record<string, string> = {};
     for (const r of rows) {
-      const give = Math.min(r.demand, Math.max(left, 0));
+      const give = Math.min(openNeedOf(r), Math.max(left, 0));
       next[r.institution_year_id] = String(give);
       left -= give;
     }
@@ -471,6 +477,7 @@ function AllocateModal({ summary, data, onClose, onDone }: { summary: BookSummar
             <tr>
               <th className="px-3 py-2 text-right">מוסד</th>
               <th className="px-3 py-2 text-right">נדרש</th>
+              <th className="px-3 py-2 text-right">נמסר</th>
               <th className="px-3 py-2 text-right">הוזמן מספק</th>
               <th className="px-3 py-2 text-right">מוקצה</th>
               <th className="px-3 py-2 text-right">חסר</th>
@@ -483,6 +490,7 @@ function AllocateModal({ summary, data, onClose, onDone }: { summary: BookSummar
                 <tr key={r.institution_year_id}>
                   <td className="px-3 py-2 font-medium">{data.iys.get(r.institution_year_id)?.name}</td>
                   <td className="px-3 py-2">{r.demand}</td>
+                  <td className="px-3 py-2 text-slate-500">{r.delivered}</td>
                   <td className="px-3 py-2 text-slate-500">{r.ordered}</td>
                   <td className="px-3 py-2">
                     <input
@@ -492,7 +500,7 @@ function AllocateModal({ summary, data, onClose, onDone }: { summary: BookSummar
                       onChange={(e) => setValues((x) => ({ ...x, [r.institution_year_id]: e.target.value }))}
                     />
                   </td>
-                  <td className={`px-3 py-2 ${r.demand - v > 0 ? 'text-red-600' : 'text-slate-400'}`}>{Math.max(r.demand - v, 0)}</td>
+                  <td className={`px-3 py-2 ${openNeedOf(r) - v > 0 ? 'text-red-600' : 'text-slate-400'}`}>{Math.max(openNeedOf(r) - v, 0)}</td>
                 </tr>
               );
             })}
@@ -575,7 +583,7 @@ function SupplierReport({ data, yearName }: { data: Data; yearName: string }) {
     const summaries = new Map(summarize(data).map((s) => [s.book.id, s]));
     const bySup = new Map<string, Map<string, DemandRow[]>>();
     for (const d of data.demand) {
-      if (d.demand - d.allocated <= 0) continue;
+      if (missingOf(d) <= 0) continue;
       const sk = d.supplier_id ?? '';
       const books = bySup.get(sk) ?? new Map<string, DemandRow[]>();
       books.set(d.book_id, [...(books.get(d.book_id) ?? []), d]);
@@ -599,15 +607,16 @@ function SupplierReport({ data, yearName }: { data: Data; yearName: string }) {
         rows: groups.flatMap((g) =>
           g.books.flatMap((b) =>
             b.rows
-              .filter((r) => r.demand - r.allocated > 0)
+              .filter((r) => missingOf(r) > 0)
               .map((r) => ({
                 ספק: g.name,
                 'קוד ספר': b.book?.code,
                 ספר: b.book?.name,
                 מוסד: data.iys.get(r.institution_year_id)?.name,
                 נדרש: r.demand,
+                נמסר: r.delivered,
                 מוקצה: r.allocated,
-                חסר: r.demand - r.allocated,
+                חסר: missingOf(r),
                 'הוזמן מספק למוסד': r.ordered,
                 'בהזמנות רכש פתוחות (לספר)': b.summary?.onOrder ?? 0,
                 'צפי אספקה': formatDate(data.expected.get(b.bookId)),
@@ -651,13 +660,13 @@ function SupplierReport({ data, yearName }: { data: Data; yearName: string }) {
               {g.books.map((b) => (
                 <tr key={b.bookId} className="align-top">
                   <td className="py-1.5 font-medium">{b.book?.name}</td>
-                  <td className="py-1.5 text-red-600">{b.rows.reduce((s, r) => s + Math.max(r.demand - r.allocated, 0), 0)}</td>
+                  <td className="py-1.5 text-red-600">{b.rows.reduce((s, r) => s + missingOf(r), 0)}</td>
                   <td className="py-1.5">{b.summary?.free ?? 0}</td>
                   <td className="py-1.5">{(b.summary?.onOrder ?? 0) + (b.summary?.inDraft ?? 0)}</td>
                   <td className={`py-1.5 font-bold ${b.summary?.toOrder ? 'text-red-600' : 'text-slate-400'}`}>{b.summary?.toOrder ?? 0}</td>
                   <td className="py-1.5">{formatDate(data.expected.get(b.bookId)) || '—'}</td>
                   <td className="py-1.5 text-xs text-slate-600">
-                    {b.rows.map((r) => `${data.iys.get(r.institution_year_id)?.name}: ${r.demand - r.allocated}`).join(' · ')}
+                    {b.rows.map((r) => `${data.iys.get(r.institution_year_id)?.name}: ${missingOf(r)}`).join(' · ')}
                   </td>
                 </tr>
               ))}
@@ -693,8 +702,9 @@ function InstitutionReport({ data, yearName }: { data: Data; yearName: string })
           'קוד ספר': r.book?.code,
           ספר: r.book?.name,
           נדרש: r.demand,
-          'הוקצה (התקבל)': r.allocated,
-          חסר: Math.max(r.demand - r.allocated, 0),
+          נמסר: r.delivered,
+          'הוקצה (ממתין למסירה)': r.allocated,
+          חסר: missingOf(r),
           ספק: r.supplier_id ? data.supplierName.get(r.supplier_id) : '',
           'צפי אספקה': formatDate(data.expected.get(r.book_id)),
         })),
@@ -730,6 +740,7 @@ function InstitutionReport({ data, yearName }: { data: Data; yearName: string })
             <tr>
               <th className="px-3 py-2 text-right">ספר</th>
               <th className="px-3 py-2 text-right">נדרש</th>
+              <th className="px-3 py-2 text-right">נמסר</th>
               <th className="px-3 py-2 text-right">הוקצה</th>
               <th className="px-3 py-2 text-right">חסר</th>
               <th className="px-3 py-2 text-right">ספק</th>
@@ -738,11 +749,12 @@ function InstitutionReport({ data, yearName }: { data: Data; yearName: string })
           </thead>
           <tbody className="divide-y divide-slate-100">
             {rows.map((r) => {
-              const missing = Math.max(r.demand - r.allocated, 0);
+              const missing = missingOf(r);
               return (
                 <tr key={r.book_id}>
                   <td className="px-3 py-2 font-medium">{r.book?.name}</td>
                   <td className="px-3 py-2">{r.demand}</td>
+                  <td className="px-3 py-2">{r.delivered}</td>
                   <td className="px-3 py-2">{r.allocated}</td>
                   <td className={`px-3 py-2 ${missing ? 'font-bold text-red-600' : 'text-emerald-700'}`}>{missing || '✓'}</td>
                   <td className="px-3 py-2">{r.supplier_id ? data.supplierName.get(r.supplier_id) : '—'}</td>

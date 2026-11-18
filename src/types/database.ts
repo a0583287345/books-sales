@@ -1693,6 +1693,88 @@ export type Database = {
           },
         ]
       }
+      supplier_returns: {
+        Row: {
+          cancel_reason: string | null
+          cancelled: boolean
+          cancelled_at: string | null
+          cancelled_by_name: string | null
+          created_at: string
+          created_by_name: string | null
+          credit_amount: number | null
+          credit_note: string | null
+          credit_status: string
+          credited_at: string | null
+          credited_by_name: string | null
+          id: string
+          notes: string | null
+          number: number
+          return_date: string
+          supplier_id: string
+          updated_at: string
+          year_id: string | null
+        }
+        Insert: {
+          id?: string
+          supplier_id: string
+        }
+        Update: {
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_returns_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_return_lines: {
+        Row: {
+          book_id: string
+          id: string
+          kind: string
+          po_item_id: string | null
+          qty: number
+          reason: string | null
+          return_id: string
+        }
+        Insert: {
+          book_id: string
+          id?: string
+          kind: string
+          qty: number
+          return_id: string
+        }
+        Update: {
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_return_lines_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_returns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_return_lines_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_return_lines_po_item_id_fkey"
+            columns: ["po_item_id"]
+            isOneToOne: false
+            referencedRelation: "po_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       purchase_orders: {
         Row: {
           close_note: string | null
@@ -2438,11 +2520,52 @@ export type Database = {
         Args: { p_year?: string }
         Returns: {
           balance: number
+          credited: number
           missing_cost_items: number
           paid: number
           received_value: number
           supplier_id: string
         }[]
+      }
+      delivered_by_institution: {
+        Args: { p_year: string }
+        Returns: { book_id: string; delivered: number; institution_year_id: string }[]
+      }
+      supplier_return_candidates: {
+        Args: { p_supplier: string }
+        Returns: {
+          allocated: number
+          book_id: string
+          damaged_pending: number
+          free: number
+          on_hand: number
+          surplus: number
+          unmet: number
+          wrong_pending: number
+        }[]
+      }
+      create_supplier_return: {
+        Args: {
+          p_date?: string
+          p_lines: Json
+          p_notes?: string
+          p_supplier: string
+          p_year?: string
+        }
+        Returns: string
+      }
+      set_supplier_return_credit: {
+        Args: {
+          p_amount?: number
+          p_note?: string
+          p_return: string
+          p_status: string
+        }
+        Returns: undefined
+      }
+      cancel_supplier_return: {
+        Args: { p_reason: string; p_return: string }
+        Returns: undefined
       }
       sync_order_from_bags: { Args: { p_order: string }; Returns: undefined }
       transfer_credit: {

@@ -435,6 +435,8 @@ function PoScreen() {
       {returning && (
         <ReturnModal
           item={returning}
+          supplierId={po.supplier_id}
+          yearId={po.year_id}
           onClose={() => setReturning(null)}
           onDone={async () => {
             setReturning(null);
@@ -521,12 +523,12 @@ function CloseModal({ items, onClose, onConfirm }: { items: ItemFull[]; onClose:
   );
 }
 
-function ReturnModal({ item, onClose, onDone }: { item: ItemFull; onClose: () => void; onDone: () => void }) {
+function ReturnModal({ item, supplierId, yearId, onClose, onDone }: { item: ItemFull; supplierId: string; yearId: string; onClose: () => void; onDone: () => void }) {
   const extra = Math.max(item.qty_received - item.qty_ordered, 0);
   const kinds = [
     { k: 'damaged', label: `פגומים (${item.qty_damaged})`, max: item.qty_damaged },
     { k: 'wrong', label: `שגויים (${item.qty_wrong})`, max: item.qty_wrong },
-    { k: 'excess', label: `עודף (${extra}) – יוצא מהמלאי`, max: extra },
+    { k: 'surplus', label: `עודף${extra ? ` (${extra})` : ''} – יוצא מהמלאי`, max: 1 },
   ].filter((x) => x.max > 0);
   const [kind, setKind] = useState(kinds[0]?.k ?? 'damaged');
   const [qty, setQty] = useState('1');
@@ -535,15 +537,22 @@ function ReturnModal({ item, onClose, onDone }: { item: ItemFull; onClose: () =>
 
   const run = async () => {
     setSaving(true);
-    const { error } = await supabase.rpc('return_to_supplier', {
-      p_po_item: item.id,
-      p_qty: Math.max(toNumber(qty) ?? 0, 0),
-      p_kind: kind,
-      p_reason: reason.trim() || undefined,
+    const { error } = await supabase.rpc('create_supplier_return', {
+      p_supplier: supplierId,
+      p_year: yearId,
+      p_lines: [
+        {
+          book_id: item.book_id,
+          qty: Math.max(toNumber(qty) ?? 0, 0),
+          kind,
+          po_item_id: item.id,
+          reason: reason.trim() || undefined,
+        },
+      ],
     });
     setSaving(false);
     if (error) return toast.error(dbErrorMessage(error.message));
-    toast.success('ההחזרה נרשמה');
+    toast.success('ההחזרה נרשמה – אפשר לראות ולהדפיס אותה במסך "החזרות לספקים"');
     onDone();
   };
 

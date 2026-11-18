@@ -54,6 +54,11 @@
 - `src/lib/purchasing.ts` – סטטוסים, טיפוסים, `fetchStockLevels`/`fetchDemand`/`fetchIyNames`
 - מסכים: `purchase-orders/{page,plan/page,[id]/page}.tsx`, `receiving/page.tsx`, `inventory/page.tsx`
 - סטטוס הזמנת רכש רק דרך `rpc('set_po_status')` (`app.po_status`); מונים ב-`po_items` רק מהפונקציות (`app.po_internal`)
+- **החזרות לספקים** (`supplier-returns/page.tsx`): מסמך כללי לספק (לא כנגד הזמנת רכש) – `supplier_returns` + `supplier_return_lines`
+  (damaged/wrong = פגומים/שגויים מהקליטה, מתחלקים אוטומטית בין הקליטות; surplus = מהמלאי הפנוי → תנועת `supplier_return`).
+  רק דרך `create_supplier_return` / `cancel_supplier_return` / `set_supplier_return_credit`; מה אפשר להחזיר – `supplier_return_candidates`.
+  **זיכוי מהספק – סימון ידני בלבד**, ורק "זוכה" יורד ב-`supplier_balances`. `return_to_supplier` הישנה – בלי הרשאת הרצה
+- חסר למוסד = `missingOf` (נדרש − נמסר − מוקצה); `fetchDemand` מצרף `delivered` מ-`delivered_by_institution`
 - מלאי = סכום `stock_movements`; הקצאה = `stock_allocations` (דרך `set_allocation`); מסירה בשלב ד׳ תוסיף תנועת `delivered`
   ותקטין את ההקצאה
 

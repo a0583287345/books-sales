@@ -70,7 +70,14 @@ export type DemandRow = {
   allocated: number;
   ordered: number;
   ordered_draft: number;
+  /** נמסר כבר ללקוחות (ההקצאה קטנה במסירה) */
+  delivered: number;
 };
+
+/** חסר למוסד: נדרש − נמסר − מוקצה (לא שלילי) */
+export const missingOf = (d: Pick<DemandRow, 'demand' | 'delivered' | 'allocated'>) => Math.max(d.demand - d.delivered - d.allocated, 0);
+/** עוד צריך להקצות/למסור: נדרש − נמסר */
+export const openNeedOf = (d: Pick<DemandRow, 'demand' | 'delivered'>) => Math.max(d.demand - d.delivered, 0);
 
 export async function fetchStockLevels(): Promise<Map<string, StockLevel>> {
   const { data } = await supabase.rpc('stock_levels');
@@ -78,8 +85,12 @@ export async function fetchStockLevels(): Promise<Map<string, StockLevel>> {
 }
 
 export async function fetchDemand(yearId: string): Promise<DemandRow[]> {
-  const { data } = await supabase.rpc('demand_by_institution', { p_year: yearId });
-  return data ?? [];
+  const [{ data }, { data: dlv }] = await Promise.all([
+    supabase.rpc('demand_by_institution', { p_year: yearId }),
+    supabase.rpc('delivered_by_institution', { p_year: yearId }),
+  ]);
+  const delivered = new Map((dlv ?? []).map((x) => [`${x.institution_year_id}:${x.book_id}`, x.delivered]));
+  return (data ?? []).map((d) => ({ ...d, delivered: delivered.get(`${d.institution_year_id}:${d.book_id}`) ?? 0 }));
 }
 
 export type IyName = { id: string; name: string; number: number };
@@ -94,6 +105,26 @@ export async function fetchIyNames(yearId: string): Promise<Map<string, IyName>>
     })
   );
 }
+
+// ---------- החזרות לספקים ----------
+export type ReturnKind = 'damaged' | 'wrong' | 'surplus';
+export const RETURN_KIND_LABELS: Record<ReturnKind, string> = {
+  damaged: 'פגום',
+  wrong: 'שגוי (ספר לא נכון)',
+  surplus: 'מהמלאי (עודף / נשאר)',
+};
+export type CreditStatus = 'pending' | 'credited' | 'none';
+export const CREDIT_STATUS_LABELS: Record<CreditStatus, string> = {
+  pending: 'ממתין לזיכוי',
+  credited: 'זוכה',
+  none: 'ללא זיכוי',
+};
+export const CREDIT_STATUS_STYLES: Record<CreditStatus, string> = {
+  pending: 'bg-amber-100 text-amber-800',
+  credited: 'bg-emerald-100 text-emerald-800',
+  none: 'bg-slate-100 text-slate-600',
+};
+export type ReturnLineInput = { book_id: string; qty: number; kind: ReturnKind; reason?: string; po_item_id?: string };
 
 /** החוסר בקליטה: הוזמן פחות מה שהתקבל תקין (לא שלילי) */
 export function outstanding(it: Pick<PoItem, 'qty_ordered' | 'qty_received'>): number {
