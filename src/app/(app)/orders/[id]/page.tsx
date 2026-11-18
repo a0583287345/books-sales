@@ -9,6 +9,7 @@ import { useAuth } from '@/components/AuthContext';
 import { PageGuard, Protect } from '@/components/Protect';
 import PhoneLink from '@/components/PhoneLink';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
+import { OrderPayments } from '@/components/finance/OrderPayments';
 import { Button, EmptyState, Field, inputClass, Modal, Spinner } from '@/components/ui';
 import { toast } from '@/components/Toaster';
 import { dbErrorMessage } from '@/lib/dbErrors';
@@ -362,6 +363,7 @@ function OrderScreen() {
         )}
 
         <Totals order={order} locked={locked} onSaveDiscount={(discount, discount_reason) => updateOrder({ discount, discount_reason }, 'ההנחה עודכנה')} />
+        <OrderPayments order={order} onChanged={reload} />
       </div>
 
       {/* היסטוריה */}
@@ -488,7 +490,6 @@ function Totals({
         <Row label="יתרה" strong>
           <span className={order.balance > 0 && order.status !== 'cancelled' ? 'text-red-600' : ''}>{money(order.balance)}</span>
         </Row>
-        <p className="text-xs text-slate-400 print:hidden">רישום תשלומים ייבנה בשלב ה׳ (כספים).</p>
       </Protect>
     </div>
   );

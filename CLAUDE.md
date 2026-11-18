@@ -57,6 +57,13 @@
   definer (`packing_queue`, `order_pack_details`...) כדי שלא יצטרכו הרשאת הזמנות/לקוחות
 - **`apply_migration` שמעדכן פונקציות קיימות נדחה אוטומטית** – לבקש מהמשתמש להריץ את הקובץ ב-SQL Editor של Supabase
 
+## כספים (שלב ה׳)
+- `src/lib/finance.ts` – אמצעי תשלום, סוגי רשומות, קטגוריות הוצאה; `src/components/finance/OrderPayments.tsx`
+  (`OrderPayments` במסך ההזמנה, `PaymentModal` גם במסך המסירה)
+- מסכים: `finance/page.tsx` (5 לשוניות), `reports/page.tsx`, המסך הראשי `(app)/page.tsx` (`rpc('dashboard_stats')`)
+- תשלומים – רק דרך פונקציות (`record_payment`, `refund_payment`, `transfer_credit`, `void_payment`); אין מחיקה
+- `apply_migration` עובר כשהקובץ רק יוצר דברים חדשים (`create function` ולא `create or replace` על קיים)
+
 ## הרשאות (במסד)
 - `roles.permissions` / `user_profiles.permission_overrides` = `{perm: 'allowed'|'locked'|'hidden'}`; חסר = מוסתר.
   אפקטיבי = חריגה ?? תפקיד. תפקיד `is_super` – הכול מותר, לא נמחק, תמיד יש לפחות משתמש פעיל אחד בו.

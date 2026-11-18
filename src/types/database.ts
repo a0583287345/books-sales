@@ -638,6 +638,83 @@ export type Database = {
           { foreignKeyName: "institution_deliveries_institution_year_id_fkey"; columns: ["institution_year_id"]; isOneToOne: false; referencedRelation: "institution_years"; referencedColumns: ["id"] },
         ]
       }
+      payments: {
+        Row: {
+          id: string
+          order_id: string
+          kind: string
+          amount: number
+          method: string
+          paid_at: string
+          reference: string | null
+          notes: string | null
+          related_payment_id: string | null
+          voided: boolean
+          voided_at: string | null
+          voided_by_name: string | null
+          void_reason: string | null
+          created_at: string
+          created_by_name: string | null
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          { foreignKeyName: "payments_order_id_fkey"; columns: ["order_id"]; isOneToOne: false; referencedRelation: "orders"; referencedColumns: ["id"] },
+        ]
+      }
+      supplier_payments: {
+        Row: {
+          id: string
+          supplier_id: string
+          year_id: string | null
+          amount: number
+          method: string
+          paid_at: string
+          reference: string | null
+          notes: string | null
+          voided: boolean
+          voided_at: string | null
+          voided_by_name: string | null
+          void_reason: string | null
+          created_at: string
+          created_by_name: string | null
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          { foreignKeyName: "supplier_payments_supplier_id_fkey"; columns: ["supplier_id"]; isOneToOne: false; referencedRelation: "suppliers"; referencedColumns: ["id"] },
+        ]
+      }
+      expenses: {
+        Row: {
+          id: string
+          year_id: string | null
+          institution_year_id: string | null
+          expense_date: string
+          amount: number
+          category: string
+          payee: string | null
+          method: string | null
+          reference: string | null
+          notes: string | null
+          created_at: string
+          created_by_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          year_id?: string | null
+          institution_year_id?: string | null
+          expense_date?: string
+          amount: number
+          category: string
+          payee?: string | null
+          method?: string | null
+          reference?: string | null
+          notes?: string | null
+        }
+        Update: Partial<Database["public"]["Tables"]["expenses"]["Insert"]>
+        Relationships: []
+      }
       roles: {
         Row: {
           created_at: string
@@ -851,6 +928,47 @@ export type Database = {
         }[]
       }
       delivery_report: { Args: { p_delivery: string }; Returns: Json }
+      record_payment: {
+        Args: { p_order: string; p_amount: number; p_method: string; p_date?: string; p_reference?: string; p_notes?: string }
+        Returns: string
+      }
+      refund_payment: {
+        Args: { p_order: string; p_amount: number; p_method: string; p_date?: string; p_reference?: string; p_notes?: string }
+        Returns: string
+      }
+      transfer_credit: { Args: { p_from_order: string; p_to_order: string; p_amount: number; p_notes?: string }; Returns: undefined }
+      void_payment: { Args: { p_payment: string; p_reason: string }; Returns: undefined }
+      record_supplier_payment: {
+        Args: {
+          p_supplier: string
+          p_amount: number
+          p_method: string
+          p_year?: string
+          p_date?: string
+          p_reference?: string
+          p_notes?: string
+        }
+        Returns: string
+      }
+      void_supplier_payment: { Args: { p_payment: string; p_reason: string }; Returns: undefined }
+      supplier_balances: {
+        Args: { p_year?: string }
+        Returns: { supplier_id: string; received_value: number; paid: number; balance: number; missing_cost_items: number }[]
+      }
+      finance_summary: { Args: { p_year: string }; Returns: Json }
+      dashboard_stats: { Args: { p_year: string }; Returns: Json }
+      institution_finance: {
+        Args: { p_year: string }
+        Returns: {
+          institution_year_id: string
+          inst_name: string
+          orders_count: number
+          sales_total: number
+          paid: number
+          open_debt: number
+          delivered_orders: number
+        }[]
+      }
       has_permission: { Args: { p: string }; Returns: boolean }
       is_active_user: { Args: never; Returns: boolean }
       is_super_user: { Args: never; Returns: boolean }

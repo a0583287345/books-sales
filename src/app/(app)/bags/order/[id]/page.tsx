@@ -2,12 +2,13 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { AlertTriangle, ArrowRight, CheckCircle2, ClipboardCheck, HandHeart, Minus, PackagePlus, Pencil, Plus, Printer, Tag, Undo2, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CheckCircle2, ClipboardCheck, HandHeart, Minus, PackagePlus, Pencil, Plus, Printer, Tag, Undo2, Wallet, XCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/components/AuthContext';
 import { PageGuard, Protect } from '@/components/Protect';
 import { BagStatusBadge } from '@/components/warehouse/BagStatusBadge';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
+import { PaymentModal } from '@/components/finance/OrderPayments';
 import { Button, EmptyState, Field, inputClass, Modal, Spinner } from '@/components/ui';
 import { toast } from '@/components/Toaster';
 import { dbErrorMessage } from '@/lib/dbErrors';
@@ -335,8 +336,11 @@ function PackModal({ data, bag, onClose, onSaved }: { data: PackDetails; bag: Pa
 }
 
 function DeliverModal({ bag, order, onClose, onDone }: { bag: PackBag; order: PackDetails['order']; onClose: () => void; onDone: () => void }) {
+  const { hasPermission } = useAuth();
   const [who, setWho] = useState(order.customer_name);
   const [saving, setSaving] = useState(false);
+  const [balance, setBalance] = useState(order.balance);
+  const [paying, setPaying] = useState(false);
   const run = async () => {
     setSaving(true);
     const { error } = await supabase.rpc('set_bag_status', { p_bag: bag.id, p_status: 'delivered', p_received_by: who.trim() });
@@ -360,18 +364,35 @@ function DeliverModal({ bag, order, onClose, onDone }: { bag: PackBag; order: Pa
       }
     >
       <div className="space-y-3 rounded-xl bg-white p-4">
-        {order.balance > 0 ? (
-          <p className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 font-medium text-red-700">
-            <AlertTriangle className="h-5 w-5" /> יתרה לתשלום: {money(order.balance)}
-          </p>
+        {balance > 0 ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg bg-red-50 px-3 py-2 font-medium text-red-700">
+            <AlertTriangle className="h-5 w-5" /> <span className="flex-1">יתרה לתשלום: {money(balance)}</span>
+            {hasPermission('payments_record') && (
+              <Button onClick={() => setPaying(true)}>
+                <Wallet className="h-4 w-4" /> רישום תשלום
+              </Button>
+            )}
+          </div>
         ) : (
           <p className="rounded-lg bg-emerald-50 px-3 py-2 font-medium text-emerald-700">ההזמנה שולמה ✓</p>
+        )}
+        {paying && (
+          <PaymentModal
+            order={{ id: order.id, number: order.number, balance }}
+            mode="pay"
+            title={`תשלום במסירה – ${order.student_name}`}
+            onClose={() => setPaying(false)}
+            onDone={async () => {
+              setPaying(false);
+              const { data } = await supabase.from('orders').select('balance').eq('id', order.id).maybeSingle();
+              if (data) setBalance(data.balance);
+            }}
+          />
         )}
         {bag.is_partial && <p className="text-sm text-amber-700">שימו לב: זו שקית חלקית – חסרים ספרים שיגיעו בהמשך.</p>}
         <Field label="מי אסף את השקית">
           <input className={`${inputClass} text-base`} value={who} onChange={(e) => setWho(e.target.value)} autoFocus />
         </Field>
-        <p className="text-xs text-slate-400">רישום התשלום עצמו ייבנה בשלב הכספים ויופיע כאן.</p>
       </div>
     </Modal>
   );

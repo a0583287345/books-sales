@@ -47,8 +47,8 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/inventory', label: 'מלאי וחוסרים', icon: Warehouse, perm: 'inventory_view', ready: true },
   { href: '/bags', label: 'הכנת שקיות', icon: ShoppingBag, perm: ['picking_do', 'bags_check', 'labels_print'], ready: true },
   { href: '/shipments', label: 'מסירה ומשלוחים', icon: Truck, perm: ['shipments_view', 'pickups_do'], ready: true },
-  { href: '/finance', label: 'כספים והוצאות', icon: Wallet, perm: 'finance_view', ready: false },
-  { href: '/reports', label: 'דוחות', icon: BarChart3, perm: 'reports_view', ready: false },
+  { href: '/finance', label: 'כספים והוצאות', icon: Wallet, perm: ['finance_view', 'expenses_manage', 'supplier_payments_manage'], ready: true },
+  { href: '/reports', label: 'דוחות', icon: BarChart3, perm: 'reports_view', ready: true },
   {
     href: '/settings',
     label: 'הגדרות והרשאות',
