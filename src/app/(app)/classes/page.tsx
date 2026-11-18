@@ -13,6 +13,8 @@ import { Button, ClosedYearNotice, EmptyState, Field, inputClass, Modal, PageHea
 import { toast } from '@/components/Toaster';
 import { dbErrorMessage } from '@/lib/dbErrors';
 import { exportToExcel } from '@/lib/excel';
+import { ImportButton, ImportExcelModal } from '@/components/ImportExcelModal';
+import { classBooksImporter } from '@/lib/importers';
 import { formatDate, money, nullIfEmpty, toNumber } from '@/lib/format';
 import {
   BOOK_SUPPLIER_COLUMNS,
@@ -403,6 +405,7 @@ function ClassBooksPanel({
 }) {
   const { hasPermission } = useAuth();
   const [rows, setRows] = useState<ClassBook[] | null>(null);
+  const [importing, setImporting] = useState(false);
   const bookById = useMemo(() => new Map(books.map((b) => [b.id, b])), [books]);
   const supplierName = useMemo(() => new Map(suppliers.map((s) => [s.id, s.name])), [suppliers]);
   const canCopy = hasPermission('classes_copy') && !!canEdit;
@@ -501,10 +504,23 @@ function ClassBooksPanel({
           </>
         )}
         <Protect permId="export_excel">
-          <Button variant="secondary" onClick={exportClass} disabled={!rows.length}>
+          <Button variant="secondary" onClick={exportClass} disabled={!rows.length} title="ייצוא לאקסל">
             <FileSpreadsheet className="h-4 w-4" />
           </Button>
         </Protect>
+        {canEdit && <ImportButton editPerm="classes_manage" onClick={() => setImporting(true)} />}
+        {importing && (
+          <ImportExcelModal
+            title={`ייבוא רשימת ספרים לכיתה ${cls.name}`}
+            templateName={`תבנית ייבוא רשימה – כיתה ${cls.name}`}
+            {...classBooksImporter(cls.id, books, suppliers)}
+            onClose={() => setImporting(false)}
+            onDone={async () => {
+              setRows(await fetchClassBooks(cls.id));
+              onCountChanged();
+            }}
+          />
+        )}
         <Protect permId="reports_view">
           <Button variant="secondary" onClick={() => window.print()} disabled={!rows.length} title="הדפסה">
             <Printer className="h-4 w-4" />

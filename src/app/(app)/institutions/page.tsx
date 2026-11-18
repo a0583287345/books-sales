@@ -13,6 +13,8 @@ import { Button, ClosedYearNotice, EmptyState, Field, inputClass, Modal, PageHea
 import { toast } from '@/components/Toaster';
 import { dbErrorMessage } from '@/lib/dbErrors';
 import { exportToExcel } from '@/lib/excel';
+import { ImportButton, ImportExcelModal } from '@/components/ImportExcelModal';
+import { institutionsImporter } from '@/lib/importers';
 import { formatDate, normalizeSearch, nullIfEmpty, toNumber } from '@/lib/format';
 import {
   INSTITUTION_COLUMNS,
@@ -59,6 +61,7 @@ function InstitutionsScreen() {
   const [editing, setEditing] = useState<Row | 'new' | null>(null);
   const [copying, setCopying] = useState<Row | null>(null);
   const [adding, setAdding] = useState<Row | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const yearId = year?.id ?? null;
   const reload = useCallback(async () => setRows(await fetchData(yearId)), [yearId]);
@@ -114,6 +117,7 @@ function InstitutionsScreen() {
             <FileSpreadsheet className="h-4 w-4" /> אקסל
           </Button>
         </Protect>
+        {!readOnly && year && <ImportButton editPerm="institutions_create" onClick={() => setImporting(true)} />}
         {!readOnly && year && (
           <Protect permId="institutions_create">
             <Button onClick={() => setEditing('new')}>
@@ -236,6 +240,19 @@ function InstitutionsScreen() {
         </>
       )}
 
+      {importing && year && (
+        <ImportExcelModal
+          title={`ייבוא מוסדות מאקסל – לשנת ${year.name}`}
+          templateName="תבנית ייבוא מוסדות"
+          {...institutionsImporter(
+            rows.map((r) => r.inst),
+            year.id,
+            new Set(rows.filter((r) => r.iy).map((r) => r.inst.id))
+          )}
+          onClose={() => setImporting(false)}
+          onDone={reload}
+        />
+      )}
       {editing && year && (
         <InstitutionModal
           key={editing === 'new' ? 'new' : editing.inst.id}

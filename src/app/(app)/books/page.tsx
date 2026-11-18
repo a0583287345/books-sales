@@ -9,6 +9,8 @@ import { Button, EmptyState, Field, inputClass, Modal, PageHeader, Spinner } fro
 import { toast } from '@/components/Toaster';
 import { dbErrorMessage } from '@/lib/dbErrors';
 import { exportToExcel } from '@/lib/excel';
+import { ImportButton, ImportExcelModal } from '@/components/ImportExcelModal';
+import { booksImporter } from '@/lib/importers';
 import { money, normalizeSearch, nullIfEmpty, toNumber } from '@/lib/format';
 import {
   BOOK_SUPPLIER_COLUMNS,
@@ -42,6 +44,7 @@ function BooksScreen() {
   const [search, setSearch] = useState('');
   const [showInactive, setShowInactive] = useState(false);
   const [editing, setEditing] = useState<Book | 'new' | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const load = useCallback(
     () => Promise.all([fetchBooks(), fetchSuppliers(), fetchLinks(canSeeCost)]),
@@ -108,6 +111,7 @@ function BooksScreen() {
             <FileSpreadsheet className="h-4 w-4" /> אקסל
           </Button>
         </Protect>
+        <ImportButton editPerm="books_manage" onClick={() => setImporting(true)} />
         <Protect permId="books_manage">
           <Button onClick={() => setEditing('new')}>
             <Plus className="h-4 w-4" /> ספר חדש
@@ -170,6 +174,15 @@ function BooksScreen() {
         </div>
       )}
 
+      {importing && (
+        <ImportExcelModal
+          title="ייבוא ספרים לקטלוג מאקסל"
+          templateName="תבנית ייבוא קטלוג ספרים"
+          {...booksImporter(books, suppliers, canSeeCost)}
+          onClose={() => setImporting(false)}
+          onDone={reload}
+        />
+      )}
       {editing && (
         <BookModal
           key={editing === 'new' ? 'new' : editing.id}

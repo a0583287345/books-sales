@@ -12,6 +12,8 @@ import { dbErrorMessage } from '@/lib/dbErrors';
 import { exportToExcel } from '@/lib/excel';
 import { money, normalizeSearch, nullIfEmpty, toNumber } from '@/lib/format';
 import { fetchSuppliers, type Supplier } from '@/lib/entities';
+import { ImportButton, ImportExcelModal } from '@/components/ImportExcelModal';
+import { suppliersImporter } from '@/lib/importers';
 
 export default function SuppliersPage() {
   return (
@@ -26,6 +28,7 @@ function SuppliersScreen() {
   const [search, setSearch] = useState('');
   const [showInactive, setShowInactive] = useState(false);
   const [editing, setEditing] = useState<Supplier | 'new' | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const reload = useCallback(async () => setSuppliers(await fetchSuppliers()), []);
   useEffect(() => {
@@ -76,6 +79,7 @@ function SuppliersScreen() {
             <FileSpreadsheet className="h-4 w-4" /> אקסל
           </Button>
         </Protect>
+        <ImportButton editPerm="suppliers_manage" onClick={() => setImporting(true)} />
         <Protect permId="suppliers_manage">
           <Button onClick={() => setEditing('new')}>
             <Plus className="h-4 w-4" /> ספק חדש
@@ -134,6 +138,15 @@ function SuppliersScreen() {
         </div>
       )}
 
+      {importing && (
+        <ImportExcelModal
+          title="ייבוא ספקים מאקסל"
+          templateName="תבנית ייבוא ספקים"
+          {...suppliersImporter(suppliers)}
+          onClose={() => setImporting(false)}
+          onDone={reload}
+        />
+      )}
       {editing && (
         <SupplierModal
           key={editing === 'new' ? 'new' : editing.id}

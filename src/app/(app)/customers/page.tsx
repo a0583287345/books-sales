@@ -11,6 +11,8 @@ import { Button, EmptyState, Field, inputClass, Modal, PageHeader, Spinner } fro
 import { toast } from '@/components/Toaster';
 import { dbErrorMessage } from '@/lib/dbErrors';
 import { exportToExcel } from '@/lib/excel';
+import { ImportButton, ImportExcelModal } from '@/components/ImportExcelModal';
+import { customersImporter } from '@/lib/importers';
 import { normalizeSearch, nullIfEmpty, toNumber } from '@/lib/format';
 
 export default function CustomersPage() {
@@ -47,6 +49,7 @@ function CustomersScreen() {
   const [customers, setCustomers] = useState<Customer[] | null>(null);
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<Customer | 'new' | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const reload = useCallback(async () => setCustomers(await fetchCustomers()), []);
   useEffect(() => {
@@ -95,6 +98,7 @@ function CustomersScreen() {
             <FileSpreadsheet className="h-4 w-4" /> אקסל
           </Button>
         </Protect>
+        <ImportButton editPerm="customers_create" onClick={() => setImporting(true)} />
         <Protect permId="customers_create">
           <Button onClick={() => setEditing('new')}>
             <Plus className="h-4 w-4" /> לקוח חדש
@@ -153,6 +157,15 @@ function CustomersScreen() {
         </div>
       )}
 
+      {importing && (
+        <ImportExcelModal
+          title="ייבוא לקוחות מאקסל"
+          templateName="תבנית ייבוא לקוחות"
+          {...customersImporter(customers)}
+          onClose={() => setImporting(false)}
+          onDone={reload}
+        />
+      )}
       {editing && (
         <CustomerModal
           key={editing === 'new' ? 'new' : editing.id}

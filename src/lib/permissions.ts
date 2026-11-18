@@ -20,6 +20,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
       { id: 'dashboard_view', label: 'צפייה במסך הראשי (תמונת מצב)', kind: 'view' },
       { id: 'reports_view', label: 'צפייה בדוחות והדפסתם', kind: 'view' },
       { id: 'export_excel', label: 'ייצוא לאקסל', kind: 'action' },
+      { id: 'import_excel', label: 'ייבוא מאקסל (בנוסף להרשאת העריכה של המסך)', kind: 'action' },
     ],
   },
   {

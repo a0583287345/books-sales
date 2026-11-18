@@ -12,6 +12,8 @@ import { Button, EmptyState, Field, inputClass, Modal, PageHeader, Spinner } fro
 import { toast } from '@/components/Toaster';
 import { dbErrorMessage } from '@/lib/dbErrors';
 import { exportToExcel } from '@/lib/excel';
+import { ImportButton, ImportExcelModal } from '@/components/ImportExcelModal';
+import { expensesImporter } from '@/lib/importers';
 import { formatDate, money, nullIfEmpty, toNumber } from '@/lib/format';
 import { fetchSuppliers, type Supplier } from '@/lib/entities';
 import {
@@ -725,6 +727,7 @@ function ExpensesTab({ yearId, yearName }: { yearId: string; yearName: string })
   const [rows, setRows] = useState<Expense[] | null>(null);
   const [editing, setEditing] = useState<Expense | 'new' | null>(null);
   const [category, setCategory] = useState('');
+  const [importing, setImporting] = useState(false);
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -762,6 +765,16 @@ function ExpensesTab({ yearId, yearName }: { yearId: string; yearName: string })
           <Button onClick={() => setEditing('new')}>
             <Plus className="h-4 w-4" /> הוצאה חדשה
           </Button>
+        )}
+        <ImportButton editPerm="expenses_manage" onClick={() => setImporting(true)} />
+        {importing && (
+          <ImportExcelModal
+            title="ייבוא הוצאות מאקסל"
+            templateName="תבנית ייבוא הוצאות"
+            {...expensesImporter(yearId)}
+            onClose={() => setImporting(false)}
+            onDone={reload}
+          />
         )}
         <select className={`${inputClass} w-auto`} value={category} onChange={(e) => setCategory(e.target.value)}>
           <option value="">כל הקטגוריות</option>

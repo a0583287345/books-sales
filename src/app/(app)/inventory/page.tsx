@@ -10,6 +10,8 @@ import { Button, EmptyState, Field, inputClass, Modal, PageHeader, Spinner } fro
 import { toast } from '@/components/Toaster';
 import { dbErrorMessage } from '@/lib/dbErrors';
 import { exportToExcel } from '@/lib/excel';
+import { ImportButton, ImportExcelModal } from '@/components/ImportExcelModal';
+import { stockImporter } from '@/lib/importers';
 import { formatDate, normalizeSearch, toNumber } from '@/lib/format';
 import { fetchBooks, fetchSuppliers, type Book } from '@/lib/entities';
 import { fetchDemand, fetchIyNames, fetchStockLevels, type DemandRow, type IyName, type StockLevel } from '@/lib/purchasing';
@@ -162,6 +164,7 @@ function StockTab({ data, onChanged }: { data: Data; onChanged: () => void }) {
   const [allocating, setAllocating] = useState<BookSummary | null>(null);
   const [history, setHistory] = useState<Book | null>(null);
   const [addingOpening, setAddingOpening] = useState(false);
+  const [importingStock, setImportingStock] = useState(false);
 
   const rows = useMemo(() => summarize(data), [data]);
   const filtered = rows.filter(
@@ -205,6 +208,16 @@ function StockTab({ data, onChanged }: { data: Data; onChanged: () => void }) {
             <PackagePlus className="h-4 w-4" /> מלאי פתיחה לספר
           </Button>
         </Protect>
+        <ImportButton editPerm="inventory_adjust" onClick={() => setImportingStock(true)} />
+        {importingStock && (
+          <ImportExcelModal
+            title="ייבוא מלאי פתיחה / תיקוני מלאי מאקסל"
+            templateName="תבנית ייבוא מלאי"
+            {...stockImporter([...data.books.values()])}
+            onClose={() => setImportingStock(false)}
+            onDone={onChanged}
+          />
+        )}
         <Protect permId="export_excel">
           <Button variant="secondary" onClick={exportExcel} disabled={!filtered.length}>
             <FileSpreadsheet className="h-4 w-4" /> אקסל
