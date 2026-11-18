@@ -46,13 +46,28 @@ type Avail = { institution_year_id: string; book_id: string; allocated: number; 
 
 const VIEWS = [
   ['todo', 'לאריזה'],
+  ['open', 'בליקוט'],
   ['partial', 'ארוזות חלקית'],
-  ['open', 'בליקוט / לבדיקה'],
   ['ready', 'מוכנות'],
   ['delivered', 'נמסרו'],
   ['all', 'הכול'],
 ] as const;
 type View = (typeof VIEWS)[number][0];
+
+/**
+ * השלב של ההזמנה – כל הזמנה בלשונית אחת בלבד (נבדק לפי הסדר):
+ * נמסרו – כל הספרים נמסרו · בליקוט – יש שקית שעוד לא סומנה מוכנה · מוכנות – הכול בשקיות מוכנות/שנמסרו, בלי חוסר ·
+ * ארוזות חלקית – יש שקית מוכנה/שנמסרה אבל חסרים ספרים · לאריזה – לא נארז כלום (חוץ מ"ממתינה לאישור").
+ * null = מופיעה רק ב"הכול" (ממתינה לאישור / בלי ספרים פעילים)
+ */
+function stageOf(r: Row): Exclude<View, 'all'> | null {
+  if (r.qty_total > 0 && r.qty_delivered >= r.qty_total) return 'delivered';
+  if (r.bags_open > 0) return 'open';
+  if (r.qty_total > 0 && r.qty_packed >= r.qty_total) return 'ready';
+  if (r.qty_packed > 0) return 'partial';
+  if (r.qty_total > 0 && r.order_status !== 'pending') return 'todo';
+  return null;
+}
 
 const SORTS = [
   ['inst', 'מוסד, כיתה ושם'],
@@ -121,18 +136,27 @@ function BagsScreen() {
       .map(([value, v]) => ({ value, ...v }));
   }, [rows, f.inst]);
 
+  // לפי מוסד/כיתה/מסירה (בלי הלשונית והחיפוש) – גם בשביל המונים על הלשוניות
+  const baseRows = useMemo(
+    () =>
+      (rows ?? []).filter(
+        (r) => matches(f.inst, r.institution_year_id) && matches(f.cls, classKey(r)) && matches(f.delivery, r.delivery_method)
+      ),
+    [rows, f.inst, f.cls, f.delivery]
+  );
+  const viewCounts = useMemo(() => {
+    const m = new Map<View, number>([['all', baseRows.length]]);
+    for (const r of baseRows) {
+      const s = stageOf(r);
+      if (s) m.set(s, (m.get(s) ?? 0) + 1);
+    }
+    return m;
+  }, [baseRows]);
+
   const filtered = useMemo(() => {
     const q = normalizeSearch(search);
-    const list = (rows ?? []).filter((r) => {
-      if (!matches(f.inst, r.institution_year_id)) return false;
-      if (!matches(f.cls, classKey(r))) return false;
-      if (!matches(f.delivery, r.delivery_method)) return false;
-      const remaining = r.qty_total - r.qty_packed;
-      if (view === 'todo' && !(r.qty_packed === 0 && r.qty_total > 0)) return false;
-      if (view === 'partial' && !(r.qty_packed > 0 && remaining > 0)) return false;
-      if (view === 'open' && r.bags_open === 0) return false;
-      if (view === 'ready' && r.bags_ready === 0) return false;
-      if (view === 'delivered' && !(r.qty_delivered > 0)) return false;
+    const list = baseRows.filter((r) => {
+      if (view !== 'all' && stageOf(r) !== view) return false;
       if (q && !(String(r.order_number) === q || normalizeSearch(`${r.student_name} ${r.customer_name}`).includes(q))) return false;
       return true;
     });
@@ -145,7 +169,7 @@ function BagsScreen() {
     };
     const c = cmp[f.sort] ?? cmp.inst;
     return list.sort((a, b) => (f.desc ? -c(a, b) : c(a, b)));
-  }, [rows, f, view, search]);
+  }, [baseRows, f.sort, f.desc, view, search]);
 
   const filterActive = !!search.trim() || f.inst.length + f.cls.length + f.delivery.length > 0;
   const clearAll = () => {
@@ -198,7 +222,7 @@ function BagsScreen() {
             onClick={() => setF({ view: v })}
             className={`rounded-full px-4 py-2 text-sm ${view === v ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200'}`}
           >
-            {label}
+            {label} <span className={view === v ? 'text-blue-100' : 'text-slate-400'}>({viewCounts.get(v) ?? 0})</span>
           </button>
         ))}
       </div>

@@ -24,14 +24,12 @@ import {
   ORDER_COLUMNS,
   ORDER_ITEM_COLUMNS,
   ORDER_STATUS_LABELS,
-  ORDER_STATUSES,
   REVIEW_FIELD_LABELS,
   SOURCE_LABELS,
   type ClassBookOption,
   type DeliveryMethod,
   type OrderItem,
   type OrderRow,
-  type OrderStatus,
 } from '@/lib/orders';
 
 export default function OrderPage() {
@@ -266,18 +264,15 @@ function OrderScreen() {
 
         {/* סטטוס ומסירה */}
         <div className="mt-4 flex flex-wrap items-end gap-3 border-t border-slate-100 pt-4 print:hidden">
-          <Field label="סטטוס">
-            <select
-              className={`${inputClass} w-auto`}
-              value={order.status}
-              disabled={!canEdit}
-              onChange={(e) => void updateOrder({ status: e.target.value as OrderStatus }, 'הסטטוס עודכן')}
-            >
-              {ORDER_STATUSES.filter((s) => s !== 'cancelled').map((s) => (
-                <option key={s} value={s}>{ORDER_STATUS_LABELS[s]}</option>
-              ))}
-              {order.status === 'cancelled' && <option value="cancelled">בוטלה</option>}
-            </select>
+          <Field label="סטטוס (מתעדכן אוטומטית לפי השקיות)">
+            <div className="flex h-[42px] items-center gap-2">
+              <OrderStatusBadge status={order.status} />
+              {order.status === 'pending' && canEdit && (
+                <Button variant="secondary" onClick={() => void updateOrder({ status: 'new' }, 'ההזמנה אושרה ועברה לאריזה')}>
+                  אישור ההזמנה
+                </Button>
+              )}
+            </div>
           </Field>
           <Field label="אופן מסירה">
             <select

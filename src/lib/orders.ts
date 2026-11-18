@@ -4,12 +4,15 @@ import { supabase } from '@/lib/supabase';
 // הזמנות: סטטוסים, אופני מסירה, טיפוסים ושליפות משותפות
 // =====================================================================
 
+/**
+ * סטטוס ההזמנה = שלב ההכנה, מתעדכן אוטומטית לפי השקיות והספרים (`sync_order_from_bags` במסד).
+ * ידנית – רק אישור (ממתינה לאישור → חדשה) וביטול. זהה ללשוניות במסך "הכנת שקיות".
+ */
 export const ORDER_STATUSES = [
-  'new',
   'pending',
-  'approved',
-  'processing',
+  'new',
   'preparing',
+  'partial',
   'ready',
   'sent',
   'delivered',
@@ -18,23 +21,33 @@ export const ORDER_STATUSES = [
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
-  new: 'חדשה',
   pending: 'ממתינה לאישור',
-  approved: 'מאושרת',
-  processing: 'בטיפול',
-  preparing: 'בהכנה',
-  ready: 'מוכנה לאיסוף',
+  new: 'חדשה',
+  preparing: 'בליקוט',
+  partial: 'מוכנה חלקית',
+  ready: 'מוכנה',
   sent: 'הועברה ליום המכירה',
   delivered: 'נמסרה',
   cancelled: 'בוטלה',
 };
 
+/** הסבר קצר לכל סטטוס (tooltip) */
+export const ORDER_STATUS_HINTS: Record<OrderStatus, string> = {
+  pending: 'ממתינה לאישור המשרד – לא מגיעה למחסן',
+  new: 'עוד לא התחילו לארוז',
+  preparing: 'יש שקית שעוד לא סומנה מוכנה',
+  partial: 'יש שקית מוכנה (או שנמסרה) אבל חסרים ספרים',
+  ready: 'כל הספרים בשקיות מוכנות, בלי חוסר',
+  sent: 'השקיות יצאו עם משלוח ליום המכירה במוסד',
+  delivered: 'כל הספרים נמסרו',
+  cancelled: 'ההזמנה בוטלה',
+};
+
 export const ORDER_STATUS_STYLES: Record<OrderStatus, string> = {
   new: 'bg-blue-100 text-blue-800',
   pending: 'bg-amber-100 text-amber-800',
-  approved: 'bg-indigo-100 text-indigo-800',
-  processing: 'bg-violet-100 text-violet-800',
   preparing: 'bg-orange-100 text-orange-800',
+  partial: 'bg-yellow-100 text-yellow-800',
   ready: 'bg-teal-100 text-teal-800',
   sent: 'bg-cyan-100 text-cyan-800',
   delivered: 'bg-emerald-100 text-emerald-800',
@@ -42,7 +55,7 @@ export const ORDER_STATUS_STYLES: Record<OrderStatus, string> = {
 };
 
 /** סטטוסים שבהם הספרים כבר בתהליך הכנה/מסירה – ביטול מציג אזהרה */
-export const ADVANCED_STATUSES: OrderStatus[] = ['preparing', 'ready', 'sent', 'delivered'];
+export const ADVANCED_STATUSES: OrderStatus[] = ['preparing', 'partial', 'ready', 'sent', 'delivered'];
 
 export type DeliveryMethod = 'pickup' | 'institution_day';
 export const DELIVERY_LABELS: Record<DeliveryMethod, string> = {

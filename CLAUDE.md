@@ -46,6 +46,8 @@
 - **לקוח = תלמיד** (`parent_name` רשות). `student_name` בהזמנה = שם הלקוח (נקבע ב-`create_order`, מסונכרן בטריגר).
 - יצירה: `rpc('create_order')` בלבד. שינויים: update רגיל – הטריגרים `guard_orders` / `guard_order_items` אוכפים
   הרשאות, מועדי ביטול, מחירים מרשימת הכיתה ואי-שינוי סכומים; `order_history` כותב ל-`order_events`
+- סטטוס הזמנה – אוטומטי (`sync_order_from_bags`, נקרא גם בטריגר על `order_items`); ידנית רק pending → new וביטול
+  (נאכף ב-`guard_orders`). אותה חלוקה כמו `stageOf` במסך השקיות – לשנות את שניהם יחד
 - `subtotal` משתנה רק עם `app.order_recalc`, `paid_amount` רק עם `app.payment_sync` (בתוך פונקציות במסד)
 
 ## רכש ומלאי (שלב ג׳)
