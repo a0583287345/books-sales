@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/components/AuthContext';
 import { useYear } from '@/components/YearContext';
 import { PageGuard, Protect } from '@/components/Protect';
-import { CustomerPicker, type PickedCustomer } from '@/components/orders/CustomerPicker';
+import { CustomerEmailPrompt, CustomerPicker, PICKED_CUSTOMER_COLUMNS, type PickedCustomer } from '@/components/orders/CustomerPicker';
 import { Button, ClosedYearNotice, EmptyState, Field, inputClass, PageHeader, Spinner } from '@/components/ui';
 import { toast } from '@/components/Toaster';
 import { dbErrorMessage } from '@/lib/dbErrors';
@@ -107,7 +107,7 @@ function NewOrderScreen() {
     let cancelled = false;
     void supabase
       .from('customers')
-      .select('id, number, first_name, last_name, phone, phone_digits, parent_name')
+      .select(PICKED_CUSTOMER_COLUMNS)
       .eq('id', customerParam)
       .maybeSingle()
       .then(({ data }) => !cancelled && data && setCustomer(data));
@@ -123,7 +123,7 @@ function NewOrderScreen() {
     void (async () => {
       const { data: o } = await supabase
         .from('orders')
-        .select('id, number, customer_id, delivery_method, notes, classes(name), institution_years(institution_id), customers(id, number, first_name, last_name, phone, phone_digits, parent_name)')
+        .select('id, number, customer_id, delivery_method, notes, classes(name), institution_years(institution_id), customers(id, number, first_name, last_name, phone, phone_digits, parent_name, email)')
         .eq('id', copyId)
         .maybeSingle();
       if (!o || cancelled) return;
@@ -305,6 +305,7 @@ function NewOrderScreen() {
         ) : (
           <CustomerPicker onPick={setCustomer} />
         )}
+        {customer && !customer.email && <CustomerEmailPrompt customer={customer} onSaved={(email) => setCustomer({ ...customer, email })} />}
       </section>
 
       {/* 2. מוסד וכיתה */}

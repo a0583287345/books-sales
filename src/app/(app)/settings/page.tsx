@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { History, Lock, ShieldCheck, Users } from 'lucide-react';
+import { History, Inbox, Lock, Mail, ShieldCheck, Users } from 'lucide-react';
 import { useAuth } from '@/components/AuthContext';
 import { LockedPage } from '@/components/Protect';
 import { toast } from '@/components/Toaster';
@@ -9,11 +9,15 @@ import { deniedMessage, type PermissionState } from '@/lib/permissions';
 import { RolesTab } from '@/components/settings/RolesTab';
 import { UsersTab } from '@/components/settings/UsersTab';
 import { AuditLogTab } from '@/components/settings/AuditLogTab';
+import { EmailSettingsTab } from '@/components/settings/EmailSettingsTab';
+import { EmailLogTab } from '@/components/settings/EmailLogTab';
 
 const TABS = [
   { id: 'users', label: 'משתמשים', icon: Users, perm: 'users_manage', Component: UsersTab },
   { id: 'roles', label: 'תפקידים והרשאות', icon: ShieldCheck, perm: 'roles_manage', Component: RolesTab },
   { id: 'audit', label: 'יומן פעולות', icon: History, perm: 'audit_view', Component: AuditLogTab },
+  { id: 'email', label: 'מיילים', icon: Mail, perm: 'email_settings', Component: EmailSettingsTab },
+  { id: 'email_log', label: 'יומן מיילים', icon: Inbox, perm: 'emails_view', Component: EmailLogTab },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];

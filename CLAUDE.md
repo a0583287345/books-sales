@@ -70,6 +70,15 @@
 - תשלומים – רק דרך פונקציות (`record_payment`, `refund_payment`, `transfer_credit`, `void_payment`); אין מחיקה
 - `apply_migration` עובר כשהקובץ רק יוצר דברים חדשים (`create function` ולא `create or replace` על קיים)
 
+## מיילים (שלב ח׳ – אפיון `docs/SPEC_EMAIL.md`)
+- Gmail + סיסמת אפליקציה (nodemailer), כמו בפרויקט התורמים. `src/lib/email/`: `templates.ts` (משותף: תבניות, שדות
+  `{תלמיד}`..., `renderTemplate`), `client.ts` (`sendEmails` בחלקים עם התקדמות), `server.ts` (`processQueue`, מגבלה
+  יומית לפי שעון ישראל), `attachments.ts` (אקסל להזמנת רכש)
+- `/api/email` (status / save_password / test / send / process / retry / cancel), `/api/cron/email` (יומי, `CRON_SECRET`)
+- טבלאות: `email_settings` (שורה אחת), `email_secrets` (בלי מדיניות – רק השרת), `email_batches`, `email_outbox`.
+  **חריגה מכלל ה-service_role:** השרת משתמש בו לקריאת הסיסמה ולעדכון סטטוס אחרי שליחה. ההוספה לתור – בשם המשתמש (RLS לפי סוג)
+- רכיבים: `components/settings/{EmailSettingsTab,EmailLogTab}`, `components/email/EmailSection` (בכרטיס לקוח/ספק)
+
 ## הרשאות (במסד)
 - `roles.permissions` / `user_profiles.permission_overrides` = `{perm: 'allowed'|'locked'|'hidden'}`; חסר = מוסתר.
   אפקטיבי = חריגה ?? תפקיד. תפקיד `is_super` – הכול מותר, לא נמחק, תמיד יש לפחות משתמש פעיל אחד בו.

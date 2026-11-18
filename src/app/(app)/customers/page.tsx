@@ -7,6 +7,7 @@ import { useAuth } from '@/components/AuthContext';
 import { LockedText, PageGuard, Protect } from '@/components/Protect';
 import PhoneLink from '@/components/PhoneLink';
 import { CustomerOrders } from '@/components/customers/CustomerHistory';
+import { EmailSection } from '@/components/email/EmailSection';
 import { Button, EmptyState, Field, inputClass, Modal, PageHeader, Spinner } from '@/components/ui';
 import { toast } from '@/components/Toaster';
 import { dbErrorMessage } from '@/lib/dbErrors';
@@ -33,9 +34,10 @@ type Customer = {
   email: string | null;
   notes: string | null;
   parent_name: string | null;
+  email_opt_out: boolean;
   phone_digits: string | null;
 };
-const CUSTOMER_COLUMNS = 'id, number, first_name, last_name, phone, phone2, email, notes, parent_name, phone_digits';
+const CUSTOMER_COLUMNS = 'id, number, first_name, last_name, phone, phone2, email, notes, parent_name, phone_digits, email_opt_out';
 const SHOW_LIMIT = 300;
 
 async function fetchCustomers(): Promise<Customer[]> {
@@ -213,6 +215,7 @@ function CustomerModal({
     notes: customer?.notes ?? '',
     parent_name: customer?.parent_name ?? '',
   });
+  const [optOut, setOptOut] = useState(customer?.email_opt_out ?? false);
   const [priv, setPriv] = useState<PrivateInfo>({ id_number: '', address: '', city: '' });
   const [privLoaded, setPrivLoaded] = useState(!customer);
   const [saving, setSaving] = useState(false);
@@ -252,6 +255,7 @@ function CustomerModal({
       email: nullIfEmpty(form.email),
       notes: nullIfEmpty(form.notes),
       parent_name: nullIfEmpty(form.parent_name),
+      email_opt_out: optOut,
       // בלי הרשאת צפייה בטלפונים – לא נוגעים בהם בעריכה
       ...(canSeeContact || !customer ? { phone: nullIfEmpty(form.phone), phone2: nullIfEmpty(form.phone2) } : {}),
       ...(toNumber(form.number) ? { number: toNumber(form.number)! } : {}),
@@ -331,6 +335,9 @@ function CustomerModal({
         <Field label="אימייל">
           <input className={inputClass} dir="ltr" value={form.email} onChange={(e) => set('email', e.target.value)} />
         </Field>
+        <label className="flex items-center gap-2 self-end pb-2 text-sm text-slate-600">
+          <input type="checkbox" checked={optOut} onChange={(e) => setOptOut(e.target.checked)} /> ביקש לא לקבל מיילים פרסומיים
+        </label>
         {duplicates.length > 0 && (
           <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 sm:col-span-3">
             הטלפון הזה קיים גם אצל{' '}
@@ -366,6 +373,17 @@ function CustomerModal({
       </Protect>
 
       {customer && <CustomerOrders customerId={customer.id} />}
+      {customer && (
+        <EmailSection
+          target={{
+            type: 'customer',
+            id: customer.id,
+            email: customer.email,
+            name: `${customer.first_name} ${customer.last_name}`,
+            values: { תלמיד: `${customer.first_name} ${customer.last_name}`, הורה: customer.parent_name ?? '' },
+          }}
+        />
+      )}
     </Modal>
   );
 }

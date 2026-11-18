@@ -7,6 +7,7 @@ import { useAuth } from '@/components/AuthContext';
 import { PageGuard, Protect } from '@/components/Protect';
 import PhoneLink from '@/components/PhoneLink';
 import { Button, EmptyState, Field, inputClass, Modal, PageHeader, Spinner } from '@/components/ui';
+import { EmailSection } from '@/components/email/EmailSection';
 import { toast } from '@/components/Toaster';
 import { dbErrorMessage } from '@/lib/dbErrors';
 import { exportToExcel } from '@/lib/excel';
@@ -290,6 +291,9 @@ function SupplierModal({
         </Field>
       </fieldset>
 
+      {supplier && (
+        <EmailSection target={{ type: 'supplier', id: supplier.id, email: supplier.email, name: supplier.name, values: { ספק: supplier.contact_name || supplier.name } }} />
+      )}
       {supplier && (
         <Protect permId="books_view_cost" lockedFallback={null}>
           <div className="rounded-xl bg-white p-4">

@@ -73,7 +73,7 @@ export const NAV_ITEMS: NavEntry[] = [
     href: '/settings',
     label: 'הגדרות והרשאות',
     icon: Settings,
-    perm: ['users_manage', 'roles_manage', 'audit_view', 'settings_manage'],
+    perm: ['users_manage', 'roles_manage', 'audit_view', 'settings_manage', 'email_settings', 'emails_view'],
     ready: true,
   },
 ];

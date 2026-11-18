@@ -267,10 +267,11 @@ function CreditModal({ order, onClose, onDone }: { order: OrderInfo; onClose: ()
       .neq('status', 'cancelled')
       .then(({ data }) => {
         if (cancelled) return;
-        setTargets(data ?? []);
-        if (data?.[0]) {
-          setTarget(data[0].id);
-          setAmount(String(Math.min(credit, data[0].balance)));
+        const list = (data ?? []).map((o) => ({ ...o, balance: o.balance ?? 0 }));
+        setTargets(list);
+        if (list[0]) {
+          setTarget(list[0].id);
+          setAmount(String(Math.min(credit, list[0].balance)));
         }
       });
     return () => {

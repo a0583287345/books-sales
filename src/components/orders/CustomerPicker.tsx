@@ -8,6 +8,7 @@ import { Button, Field, inputClass } from '@/components/ui';
 import { toast } from '@/components/Toaster';
 import { dbErrorMessage } from '@/lib/dbErrors';
 import { normalizeSearch, nullIfEmpty } from '@/lib/format';
+import { isValidEmail } from '@/lib/email/templates';
 
 export type PickedCustomer = {
   id: string;
@@ -17,9 +18,11 @@ export type PickedCustomer = {
   phone: string | null;
   phone_digits: string | null;
   parent_name: string | null;
+  email: string | null;
 };
 
-const COLUMNS = 'id, number, first_name, last_name, phone, phone_digits, parent_name';
+export const PICKED_CUSTOMER_COLUMNS = 'id, number, first_name, last_name, phone, phone_digits, parent_name, email';
+const COLUMNS = PICKED_CUSTOMER_COLUMNS;
 
 /** חיפוש תלמיד (לקוח) לפי שם / שם ההורה / מספר / טלפון, או יצירת תלמיד חדש במקום */
 export function CustomerPicker({ onPick }: { onPick: (c: PickedCustomer) => void }) {
@@ -27,7 +30,7 @@ export function CustomerPicker({ onPick }: { onPick: (c: PickedCustomer) => void
   const [all, setAll] = useState<PickedCustomer[] | null>(null);
   const [query, setQuery] = useState('');
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ first_name: '', last_name: '', phone: '', parent_name: '' });
+  const [form, setForm] = useState({ first_name: '', last_name: '', phone: '', parent_name: '', email: '' });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -65,12 +68,14 @@ export function CustomerPicker({ onPick }: { onPick: (c: PickedCustomer) => void
       last_name: words[0] ?? '',
       phone: d.length >= 7 ? query.trim() : '',
       parent_name: '',
+      email: '',
     });
     setCreating(true);
   };
 
   const create = async () => {
     if (!form.first_name.trim() || !form.last_name.trim()) return toast.error('יש להזין שם פרטי ושם משפחה');
+    if (form.email.trim() && !isValidEmail(form.email)) return toast.error('כתובת מייל לא תקינה');
     const d = form.phone.replace(/\D/g, '');
     const dup = d.length >= 7 ? all?.find((c) => (c.phone_digits ?? '').split(' ').includes(d)) : undefined;
     if (dup && !window.confirm(`הטלפון הזה כבר קיים אצל ${dup.first_name} ${dup.last_name} (מס׳ ${dup.number}). ליצור תלמיד חדש (למשל אח/אחות)?`)) return;
@@ -82,6 +87,7 @@ export function CustomerPicker({ onPick }: { onPick: (c: PickedCustomer) => void
         last_name: form.last_name.trim(),
         phone: nullIfEmpty(form.phone),
         parent_name: nullIfEmpty(form.parent_name),
+        email: nullIfEmpty(form.email),
       })
       .select(COLUMNS)
       .single();
@@ -94,7 +100,7 @@ export function CustomerPicker({ onPick }: { onPick: (c: PickedCustomer) => void
   if (creating) {
     return (
       <div className="space-y-3">
-        <div className="grid gap-3 sm:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-5">
           <Field label="שם משפחה">
             <input className={inputClass} value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} autoFocus />
           </Field>
@@ -106,6 +112,9 @@ export function CustomerPicker({ onPick }: { onPick: (c: PickedCustomer) => void
           </Field>
           <Field label="שם ההורה (רשות)">
             <input className={inputClass} value={form.parent_name} onChange={(e) => setForm({ ...form, parent_name: e.target.value })} />
+          </Field>
+          <Field label="מייל" hint="מומלץ – לעדכון כשההזמנה מוכנה">
+            <input className={inputClass} dir="ltr" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
           </Field>
         </div>
         <div className="flex gap-2">
@@ -160,6 +169,32 @@ export function CustomerPicker({ onPick }: { onPick: (c: PickedCustomer) => void
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+/** לתלמיד שנבחר אין מייל – תזכורת עדינה + הוספה במקום (לעדכון כשההזמנה מוכנה) */
+export function CustomerEmailPrompt({ customer, onSaved }: { customer: PickedCustomer; onSaved: (email: string) => void }) {
+  const { hasPermission } = useAuth();
+  const [email, setEmail] = useState('');
+  const [saving, setSaving] = useState(false);
+  if (!hasPermission('customers_edit')) return null;
+  const save = async () => {
+    if (!isValidEmail(email)) return toast.error('כתובת מייל לא תקינה');
+    setSaving(true);
+    const { error } = await supabase.from('customers').update({ email: email.trim() }).eq('id', customer.id);
+    setSaving(false);
+    if (error) return toast.error(dbErrorMessage(error.message));
+    toast.success('המייל נשמר בכרטיס');
+    onSaved(email.trim());
+  };
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+      <span>אין מייל בכרטיס – כדאי לבקש (לעדכון כשההזמנה מוכנה):</span>
+      <input className={`${inputClass} w-64`} dir="ltr" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" />
+      <Button variant="secondary" onClick={save} loading={saving} disabled={!email.trim()}>
+        שמירה
+      </Button>
     </div>
   );
 }
