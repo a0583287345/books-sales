@@ -50,7 +50,10 @@ export const DELIVERY_LABELS: Record<DeliveryMethod, string> = {
   institution_day: 'יום מכירה במוסד',
 };
 
-export const SOURCE_LABELS: Record<string, string> = { manual: 'ידנית', phone: 'טלפונית', copy: 'העתקה' };
+export const SOURCE_LABELS: Record<string, string> = { manual: 'ידנית', phone: 'טלפונית', copy: 'העתקה', online: 'בקישור' };
+
+/** פרטים שההורה הקליד בקישור ושונים מהכרטיס (orders.review_details) */
+export const REVIEW_FIELD_LABELS: Record<string, string> = { name: 'שם', phone: 'טלפון', email: 'מייל', parent_name: 'שם ההורה' };
 
 export type OrderRow = {
   id: string;
@@ -77,10 +80,12 @@ export type OrderRow = {
   cancel_reason: string | null;
   created_at: string;
   created_by_name: string | null;
+  needs_review: boolean;
+  review_details: Record<string, string> | null;
 };
 
 export const ORDER_COLUMNS =
-  'id, number, year_id, institution_year_id, class_id, customer_id, student_id, student_name, status, delivery_method, subtotal, discount, discount_reason, total, paid_amount, balance, source, copied_from, notes, cancelled_at, cancelled_by_name, cancel_reason, created_at, created_by_name';
+  'id, number, year_id, institution_year_id, class_id, customer_id, student_id, student_name, status, delivery_method, subtotal, discount, discount_reason, total, paid_amount, balance, source, copied_from, notes, cancelled_at, cancelled_by_name, cancel_reason, created_at, created_by_name, needs_review, review_details';
 
 /** עמודות + שמות לתצוגה ברשימות */
 export const ORDER_LIST_SELECT = `${ORDER_COLUMNS},

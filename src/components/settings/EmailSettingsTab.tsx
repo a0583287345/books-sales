@@ -57,6 +57,7 @@ export function EmailSettingsTab() {
         templates: next.templates,
         default_payment_instructions: next.default_payment_instructions?.trim() || null,
         default_pickup_info: next.default_pickup_info?.trim() || null,
+        public_contact: next.public_contact?.trim() || null,
       })
       .eq('id', 1);
     setSaving(false);
@@ -121,13 +122,16 @@ export function EmailSettingsTab() {
           <textarea className={`${inputClass} min-h-20`} disabled={!canEdit} value={s.signature ?? ''} onChange={(e) => set({ signature: e.target.value })} placeholder={'מכירת ספרי לימוד\nטלפון: ...'} />
         </Field>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="הוראות תשלום – ברירת מחדל" hint="אפשר לקבוע אחרת לכל מוסד ולכל כיתה (בשלב הבא)">
+          <Field label="הוראות תשלום – ברירת מחדל" hint="אפשר לקבוע אחרת לכל מוסד ולכל כיתה">
             <textarea className={`${inputClass} min-h-24`} disabled={!canEdit} value={s.default_payment_instructions ?? ''} onChange={(e) => set({ default_payment_instructions: e.target.value })} placeholder={'תשלום בביט למספר ...\nאו במזומן/צ׳ק באיסוף'} />
           </Field>
           <Field label="פרטי איסוף – ברירת מחדל">
             <textarea className={`${inputClass} min-h-24`} disabled={!canEdit} value={s.default_pickup_info ?? ''} onChange={(e) => set({ default_pickup_info: e.target.value })} placeholder={'כתובת: ...\nשעות: א׳–ה׳ 16:00–19:00'} />
           </Field>
         </div>
+        <Field label="פרטי התקשרות למשרד – בדף ההזמנה בקישור" hint="מוצג להורים בדף ההזמנה, וגם כשהקישור סגור (לפני הפתיחה / אחרי המועד האחרון)">
+          <textarea className={`${inputClass} min-h-16`} disabled={!canEdit} value={s.public_contact ?? ''} onChange={(e) => set({ public_contact: e.target.value })} placeholder="משרד מכירת הספרים: 02-1234567 (א׳–ה׳ 9:00–13:00)" />
+        </Field>
       </section>
 
       <TemplatesEditor s={s} set={set} canEdit={canEdit} />

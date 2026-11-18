@@ -79,6 +79,20 @@
   **חריגה מכלל ה-service_role:** השרת משתמש בו לקריאת הסיסמה ולעדכון סטטוס אחרי שליחה. ההוספה לתור – בשם המשתמש (RLS לפי סוג)
 - רכיבים: `components/settings/{EmailSettingsTab,EmailLogTab}`, `components/email/EmailSection` (בכרטיס לקוח/ספק)
 
+## הזמנה בקישור (ח4) – **הגישה הציבורית היחידה למסד**
+- דף ציבורי `src/app/o/[code]/page.tsx` (מחוץ ל-`(app)`, `/o` ב-`PUBLIC_PATHS` ב-proxy); `src/lib/online.ts` (טיפוסים, בדיקת ת"ז)
+- `order_links` (kind: institution / class / order=צפייה בהזמנה). anon ניגש **רק** ל-`public_order_form` ו-`submit_online_order`
+  (definer; אוכפים מועדים, ספרים מהרשימה, הגבלת ניסיונות ב-`online_attempts` לפי IP מ-`request.headers` ולפי ת"ז)
+- זיהוי לפי ת"ז (`norm_id_number`) – פרטים שונים לא דורסים: `orders.needs_review` + `review_details` (סינון "לבדיקה")
+- מייל אישור: `/api/public/order-confirm` (service_role, רק הזמנה מהקישור מהשעה האחרונה, פעם אחת – אינדקס ייחודי);
+  `lib/email/orderValues.ts` – ערכי התבנית (בלי תלות בדפדפן)
+- ניהול: מוסדות ← כפתור קישור (`components/online/OrderLinksModal`), הרשאה `online_links_manage`
+- ח5: `order_links.kind` גם `personal` (customer_id) ו-`order` (צפייה). anon גם: `public_order_view`, `request_order_change`,
+  `public_personal_form`, `submit_personal_order`, `public_unsubscribe`. הדף: `components/online/{PublicUi,PublicOrderForm,PublicOrderView}`
+- בקשות שינוי: `online_change_requests` (רק פונקציות), אישור `decide_change_request` (`online_changes_approve`; השינוי
+  רץ בשם המשתמש → הטריגרים הרגילים), מסך `orders/requests/page.tsx`; מיילים `/api/public/change-notify` (פעם אחת לכל שלב)
+- "הזמנה להזמין": `components/online/InviteEmailModal` (`invite_candidates`, `invite_links`), שורת הסרה חובה
+
 ## הרשאות (במסד)
 - `roles.permissions` / `user_profiles.permission_overrides` = `{perm: 'allowed'|'locked'|'hidden'}`; חסר = מוסתר.
   אפקטיבי = חריגה ?? תפקיד. תפקיד `is_super` – הכול מותר, לא נמחק, תמיד יש לפחות משתמש פעיל אחד בו.

@@ -7,6 +7,7 @@ import { BookOpen, CalendarRange, ChevronDown, ChevronUp, Loader2, Lock, LogOut,
 import { useAuth } from '@/components/AuthContext';
 import { useYear, YEAR_STATUS_LABELS } from '@/components/YearContext';
 import { toast } from '@/components/Toaster';
+import { supabase } from '@/lib/supabase';
 import { isNavGroup, NAV_ITEMS, type NavGroup, type NavItem } from '@/lib/navigation';
 import type { PermissionState } from '@/lib/permissions';
 
@@ -25,6 +26,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const [pendingChanges, setPendingChanges] = useState(0);
+  const canSeeOrders = stateOf('orders_view') === 'allowed';
+
+  // כמה בקשות שינוי מהקישור ממתינות (מספר ליד "הזמנות" בתפריט) – מתרענן במעבר בין מסכים
+  useEffect(() => {
+    if (!canSeeOrders) return;
+    let cancelled = false;
+    void supabase
+      .from('online_change_requests')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending')
+      .then(({ count }) => !cancelled && setPendingChanges(count ?? 0));
+    return () => {
+      cancelled = true;
+    };
+  }, [canSeeOrders, pathname]);
 
   // אילו קבוצות פתוחות – נשמר במכשיר
   useEffect(() => {
@@ -110,7 +127,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         }`}
       >
         <Icon className="w-5 h-5 shrink-0" />
-        <span>{item.label}</span>
+        <span className="flex-1">{item.label}</span>
+        {item.href === '/orders' && pendingChanges > 0 && (
+          <span className="rounded-full bg-amber-500 px-1.5 text-xs font-bold text-white" title="בקשות שינוי מהקישור שממתינות לאישור">
+            {pendingChanges}
+          </span>
+        )}
       </Link>
     );
   };

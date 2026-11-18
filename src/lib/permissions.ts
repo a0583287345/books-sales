@@ -131,12 +131,14 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     ],
   },
   {
-    title: 'מיילים',
+    title: 'מיילים והזמנה בקישור',
     permissions: [
       { id: 'emails_send', label: 'שליחת מיילים ללקוחות (מוכנה, תזכורת תשלום, חופשי)', kind: 'action' },
       { id: 'emails_suppliers', label: 'שליחת מיילים לספקים', kind: 'action' },
       { id: 'emails_view', label: 'צפייה ביומן המיילים', kind: 'view' },
       { id: 'email_settings', label: 'הגדרות מייל: חשבון Gmail, סיסמת אפליקציה ותבניות', kind: 'action' },
+      { id: 'online_links_manage', label: 'ניהול קישורי הזמנה להורים (הפעלה, כיבוי, קוד חדש)', kind: 'action' },
+      { id: 'online_changes_approve', label: 'אישור או דחייה של בקשות שינוי מהקישור', kind: 'action' },
     ],
   },
   {

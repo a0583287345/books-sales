@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ClipboardList, Copy, FileSpreadsheet, Plus, Search, Undo2 } from 'lucide-react';
+import { ClipboardList, Copy, FileSpreadsheet, Link2, Plus, Search, Undo2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/components/AuthContext';
 import { useYear } from '@/components/YearContext';
@@ -14,6 +14,7 @@ import { toast } from '@/components/Toaster';
 import { dbErrorMessage } from '@/lib/dbErrors';
 import { exportToExcel } from '@/lib/excel';
 import { ImportButton, ImportExcelModal } from '@/components/ImportExcelModal';
+import { OrderLinksModal } from '@/components/online/OrderLinksModal';
 import { institutionsImporter } from '@/lib/importers';
 import { formatDate, normalizeSearch, nullIfEmpty, toNumber } from '@/lib/format';
 import {
@@ -61,6 +62,7 @@ function InstitutionsScreen() {
   const [editing, setEditing] = useState<Row | 'new' | null>(null);
   const [copying, setCopying] = useState<Row | null>(null);
   const [adding, setAdding] = useState<Row | null>(null);
+  const [linksFor, setLinksFor] = useState<Row | null>(null);
   const [importing, setImporting] = useState(false);
 
   const yearId = year?.id ?? null;
@@ -212,6 +214,11 @@ function InstitutionsScreen() {
                               >
                                 <ClipboardList className="h-4 w-4" /> כיתות
                               </Link>
+                              <Protect permId="online_links_manage" lockedFallback={null}>
+                                <Button variant="ghost" onClick={() => setLinksFor(r)} title="הזמנה בקישור להורים">
+                                  <Link2 className="h-4 w-4" />
+                                </Button>
+                              </Protect>
                               {!readOnly && (
                                 <Protect permId="institutions_copy">
                                   <Button variant="ghost" onClick={() => setCopying(r)} title="העתקת מוסד">
@@ -265,6 +272,18 @@ function InstitutionsScreen() {
             setEditing(null);
             await reload();
           }}
+        />
+      )}
+      {linksFor?.iy && year && (
+        <OrderLinksModal
+          institutionYearId={linksFor.iy.id}
+          institutionId={linksFor.inst.id}
+          instName={linksFor.inst.name}
+          yearName={year.name}
+          deadline={linksFor.iy.order_deadline}
+          openDate={linksFor.iy.sale_open_date}
+          readOnly={readOnly}
+          onClose={() => setLinksFor(null)}
         />
       )}
       {copying?.iy && (

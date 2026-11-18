@@ -2,7 +2,8 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
 // דפים שפתוחים גם בלי התחברות
-const PUBLIC_PATHS = ['/login'];
+// /o/<קוד> – דף ההזמנה בקישור להורים (הגישה למסד רק דרך פונקציות ציבוריות ייעודיות)
+const PUBLIC_PATHS = ['/login', '/o'];
 
 // רץ בשרת לפני כל טעינת דף:
 // 1. מרענן את ה-session של Supabase (cookies)

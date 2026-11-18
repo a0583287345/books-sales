@@ -1,4 +1,3 @@
-// נוצר ממסד הנתונים (Supabase generate_typescript_types) – Json + Database בלבד. לייצר מחדש אחרי כל שינוי סכמה.
 export type Json =
   | string
   | number
@@ -8,6 +7,8 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.18"
   }
@@ -705,6 +706,7 @@ export type Database = {
           from_name: string
           gmail_user: string | null
           id: number
+          public_contact: string | null
           reply_to: string | null
           signature: string | null
           templates: Json
@@ -718,6 +720,7 @@ export type Database = {
           from_name?: string
           gmail_user?: string | null
           id?: number
+          public_contact?: string | null
           reply_to?: string | null
           signature?: string | null
           templates?: Json
@@ -731,6 +734,7 @@ export type Database = {
           from_name?: string
           gmail_user?: string | null
           id?: number
+          public_contact?: string | null
           reply_to?: string | null
           signature?: string | null
           templates?: Json
@@ -980,6 +984,98 @@ export type Database = {
         }
         Relationships: []
       }
+      online_attempts: {
+        Row: {
+          created_at: string
+          id: number
+          id_hash: string | null
+          ip: string | null
+          kind: string
+          ok: boolean
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          id_hash?: string | null
+          ip?: string | null
+          kind: string
+          ok?: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          id_hash?: string | null
+          ip?: string | null
+          kind?: string
+          ok?: boolean
+        }
+        Relationships: []
+      }
+      online_change_requests: {
+        Row: {
+          add_books: string[]
+          cancel_order: boolean
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decided_by_name: string | null
+          decision_emailed: boolean
+          decision_reason: string | null
+          delivery_method: string | null
+          id: string
+          note: string | null
+          order_id: string
+          received_emailed: boolean
+          remove_books: string[]
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          add_books?: string[]
+          cancel_order?: boolean
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decided_by_name?: string | null
+          decision_emailed?: boolean
+          decision_reason?: string | null
+          delivery_method?: string | null
+          id?: string
+          note?: string | null
+          order_id: string
+          received_emailed?: boolean
+          remove_books?: string[]
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          add_books?: string[]
+          cancel_order?: boolean
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decided_by_name?: string | null
+          decision_emailed?: boolean
+          decision_reason?: string | null
+          delivery_method?: string | null
+          id?: string
+          note?: string | null
+          order_id?: string
+          received_emailed?: boolean
+          remove_books?: string[]
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "online_change_requests_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_events: {
         Row: {
           created_at: string
@@ -1097,6 +1193,74 @@ export type Database = {
           },
         ]
       }
+      order_links: {
+        Row: {
+          class_id: string | null
+          code: string
+          created_at: string
+          customer_id: string | null
+          id: string
+          institution_year_id: string
+          is_active: boolean
+          kind: string
+          order_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          class_id?: string | null
+          code: string
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          institution_year_id: string
+          is_active?: boolean
+          kind: string
+          order_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          class_id?: string | null
+          code?: string
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          institution_year_id?: string
+          is_active?: boolean
+          kind?: string
+          order_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_links_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_links_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_links_institution_year_id_fkey"
+            columns: ["institution_year_id"]
+            isOneToOne: false
+            referencedRelation: "institution_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_links_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           balance: number | null
@@ -1114,9 +1278,11 @@ export type Database = {
           discount_reason: string | null
           id: string
           institution_year_id: string
+          needs_review: boolean
           notes: string | null
           number: number
           paid_amount: number
+          review_details: Json | null
           source: string
           status: string
           student_id: string | null
@@ -1142,9 +1308,11 @@ export type Database = {
           discount_reason?: string | null
           id?: string
           institution_year_id: string
+          needs_review?: boolean
           notes?: string | null
           number?: number
           paid_amount?: number
+          review_details?: Json | null
           source?: string
           status?: string
           student_id?: string | null
@@ -1170,9 +1338,11 @@ export type Database = {
           discount_reason?: string | null
           id?: string
           institution_year_id?: string
+          needs_review?: boolean
           notes?: string | null
           number?: number
           paid_amount?: number
+          review_details?: Json | null
           source?: string
           status?: string
           student_id?: string | null
@@ -1892,6 +2062,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _class_texts: { Args: { p_class: string }; Returns: Json }
       _copy_institution_year_content: {
         Args: {
           p_refresh_prices: boolean
@@ -1900,6 +2071,19 @@ export type Database = {
           p_target_iy: string
         }
         Returns: number
+      }
+      _online_link_state: {
+        Args: { l: Database["public"]["Tables"]["order_links"]["Row"] }
+        Returns: string
+      }
+      _online_rate_ok: {
+        Args: { p_kind: string; p_per_hour: number }
+        Returns: boolean
+      }
+      _order_view_code: { Args: { p_order: string }; Returns: string }
+      _public_classes: {
+        Args: { p_iy: string; p_only_class: string }
+        Returns: Json
       }
       adjust_stock: {
         Args: {
@@ -1918,6 +2102,7 @@ export type Database = {
       bag_labels: { Args: { p_bags: string[] }; Returns: Json }
       book_allocated: { Args: { p_book: string }; Returns: number }
       book_on_hand: { Args: { p_book: string }; Returns: number }
+      change_request_mail_data: { Args: { p_request: string }; Returns: Json }
       copy_class: {
         Args: {
           p_name: string
@@ -1989,6 +2174,10 @@ export type Database = {
         Returns: string
       }
       dashboard_stats: { Args: { p_year: string }; Returns: Json }
+      decide_change_request: {
+        Args: { p_approve: boolean; p_reason?: string; p_request: string }
+        Returns: Json
+      }
       delivery_report: { Args: { p_delivery: string }; Returns: Json }
       demand_by_institution: {
         Args: { p_year: string }
@@ -2033,6 +2222,19 @@ export type Database = {
           sales_total: number
         }[]
       }
+      invite_candidates: {
+        Args: {
+          p_ids?: string[]
+          p_iy: string
+          p_mode: string
+          p_source?: string
+        }
+        Returns: Json
+      }
+      invite_links: {
+        Args: { p_customers: string[]; p_iy: string }
+        Returns: Json
+      }
       is_active_user: { Args: never; Returns: boolean }
       is_super_user: { Args: never; Returns: boolean }
       israel_today: { Args: never; Returns: string }
@@ -2041,7 +2243,14 @@ export type Database = {
       my_access: { Args: never; Returns: Json }
       my_full_name: { Args: never; Returns: string }
       my_role_id: { Args: never; Returns: string }
+      norm_id_number: { Args: { p: string }; Returns: string }
+      online_confirm_data: { Args: { p_view_code: string }; Returns: Json }
       order_email_data: { Args: { p_orders: string[] }; Returns: Json }
+      order_link_regenerate: { Args: { p_link: string }; Returns: string }
+      order_links_ensure: {
+        Args: { p_institution_year: string }
+        Returns: number
+      }
       order_pack_details: { Args: { p_order: string }; Returns: Json }
       order_packed_qty: { Args: { p_order: string }; Returns: number }
       order_status_label: { Args: { s: string }; Returns: string }
@@ -2081,6 +2290,11 @@ export type Database = {
       payment_method_label: { Args: { m: string }; Returns: string }
       permission_state: { Args: { p: string }; Returns: string }
       po_status_label: { Args: { s: string }; Returns: string }
+      public_order_form: { Args: { p_code: string }; Returns: Json }
+      public_order_view: { Args: { p_code: string }; Returns: Json }
+      public_personal_form: { Args: { p_code: string }; Returns: Json }
+      public_unsubscribe: { Args: { p_code: string }; Returns: Json }
+      random_link_code: { Args: never; Returns: string }
       receive_po: {
         Args: { p_lines: Json; p_notes?: string; p_po: string }
         Returns: string
@@ -2118,6 +2332,18 @@ export type Database = {
           p_reference?: string
         }
         Returns: string
+      }
+      request_ip: { Args: never; Returns: string }
+      request_order_change: {
+        Args: {
+          p_add: string[]
+          p_cancel: boolean
+          p_code: string
+          p_delivery: string
+          p_note: string
+          p_remove: string[]
+        }
+        Returns: Json
       }
       require_any_permission: { Args: { p: string[] }; Returns: undefined }
       require_permission: { Args: { p: string }; Returns: undefined }
@@ -2178,6 +2404,36 @@ export type Database = {
           on_order: number
         }[]
       }
+      submit_online_order: {
+        Args: {
+          p_class_id: string
+          p_code: string
+          p_delivery: string
+          p_email: string
+          p_first_name: string
+          p_id_number: string
+          p_items: Json
+          p_last_name: string
+          p_notes: string
+          p_parent_name: string
+          p_phone: string
+          p_trap?: string
+        }
+        Returns: Json
+      }
+      submit_personal_order: {
+        Args: {
+          p_class_id: string
+          p_code: string
+          p_delivery: string
+          p_email: string
+          p_items: Json
+          p_notes: string
+          p_phone: string
+          p_trap?: string
+        }
+        Returns: Json
+      }
       supplier_balances: {
         Args: { p_year?: string }
         Returns: {
@@ -2198,6 +2454,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      valid_israeli_id: { Args: { p: string }; Returns: boolean }
       void_payment: {
         Args: { p_payment: string; p_reason: string }
         Returns: undefined
@@ -2215,3 +2472,126 @@ export type Database = {
     }
   }
 }
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never) = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const

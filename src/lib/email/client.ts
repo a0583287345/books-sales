@@ -93,13 +93,14 @@ export type EmailSettingsRow = {
   templates: EmailTemplates;
   default_payment_instructions: string | null;
   default_pickup_info: string | null;
+  public_contact: string | null;
 };
 
 /** ההגדרות (קריאה: מי שמגדיר או שולח). null = אין הרשאה */
 export async function fetchEmailSettings(): Promise<EmailSettingsRow | null> {
   const { data } = await supabase
     .from('email_settings')
-    .select('enabled, gmail_user, from_name, reply_to, signature, daily_limit, templates, default_payment_instructions, default_pickup_info')
+    .select('enabled, gmail_user, from_name, reply_to, signature, daily_limit, templates, default_payment_instructions, default_pickup_info, public_contact')
     .eq('id', 1)
     .maybeSingle();
   if (!data) return null;

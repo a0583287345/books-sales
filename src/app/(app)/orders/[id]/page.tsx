@@ -11,6 +11,7 @@ import PhoneLink from '@/components/PhoneLink';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { OrderPayments } from '@/components/finance/OrderPayments';
 import { OrderEmailModal } from '@/components/email/OrderEmailModal';
+import { PendingChangeBanner } from '@/components/online/PendingChangeBanner';
 import { Button, EmptyState, Field, inputClass, Modal, Spinner } from '@/components/ui';
 import { toast } from '@/components/Toaster';
 import { dbErrorMessage } from '@/lib/dbErrors';
@@ -24,6 +25,7 @@ import {
   ORDER_ITEM_COLUMNS,
   ORDER_STATUS_LABELS,
   ORDER_STATUSES,
+  REVIEW_FIELD_LABELS,
   SOURCE_LABELS,
   type ClassBookOption,
   type DeliveryMethod,
@@ -131,6 +133,13 @@ function OrderScreen() {
     await reload();
   };
 
+  const markReviewed = async () => {
+    const { error } = await supabase.from('orders').update({ needs_review: false }).eq('id', order.id);
+    if (error) return toast.error(dbErrorMessage(error.message));
+    toast.success('הסימון "לבדיקה" הוסר');
+    await reload();
+  };
+
   const changeQty = async (item: ItemRow, delta: number) => {
     const next = item.qty + delta;
     if (next < 1) return setCancelTarget(item);
@@ -202,6 +211,30 @@ function OrderScreen() {
             {order.cancelled_by_name && <span className="print:hidden"> ע״י {order.cancelled_by_name}</span>}
             {order.cancel_reason && ` – ${order.cancel_reason}`}
           </p>
+        )}
+        <PendingChangeBanner orderId={order.id} />
+        {order.needs_review && (
+          <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 print:hidden">
+            <div className="flex flex-wrap items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              <span className="flex-1 font-medium">לבדיקה: בהזמנה מהקישור הוקלדו פרטים שונים מכרטיס הלקוח (הכרטיס לא שונה)</span>
+              {hasPermission('orders_edit') && (
+                <Button variant="secondary" onClick={markReviewed}>
+                  נבדק – הסרת הסימון
+                </Button>
+              )}
+            </div>
+            {order.review_details && (
+              <ul className="mt-1 list-inside list-disc">
+                {Object.entries(order.review_details).map(([k, v]) => (
+                  <li key={k}>
+                    {REVIEW_FIELD_LABELS[k] ?? k}: <b>{String(v)}</b>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="mt-1 text-xs">אם הפרטים החדשים נכונים – לעדכן אותם בכרטיס הלקוח, ואז להסיר את הסימון.</p>
+          </div>
         )}
         {extra.yearClosed && <p className="mt-2 text-sm text-amber-700">שנת הלימודים {extra.yearName} סגורה – ההזמנה לקריאה בלבד.</p>}
 

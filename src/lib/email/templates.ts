@@ -10,6 +10,9 @@ export type TemplateKey =
   | 'supplier_po'
   | 'invite'
   | 'order_confirm'
+  | 'change_received'
+  | 'change_approved'
+  | 'change_rejected'
   | 'free_customer'
   | 'free_supplier';
 
@@ -56,6 +59,9 @@ export const TEMPLATE_LABELS: Record<TemplateKey, string> = {
   supplier_po: 'הזמנת רכש לספק',
   invite: 'הזמנה להזמין ספרים',
   order_confirm: 'אישור הזמנה מהקישור',
+  change_received: 'בקשת שינוי התקבלה',
+  change_approved: 'בקשת השינוי אושרה',
+  change_rejected: 'בקשת השינוי נדחתה',
   free_customer: 'פתיח למייל חופשי ללקוח',
   free_supplier: 'פתיח למייל חופשי לספק',
 };
@@ -79,6 +85,15 @@ const ORDER_FIELDS: Placeholder[] = [
   { key: '{הוראות_תשלום}', label: 'הוראות תשלום' },
 ];
 
+const CHANGE_FIELDS: Placeholder[] = [
+  ...CUSTOMER_FIELDS,
+  { key: '{מספר_הזמנה}', label: 'מספר ההזמנה' },
+  { key: '{פירוט_בקשה}', label: 'מה התבקש' },
+  { key: '{סכום}', label: 'סכום ההזמנה (אחרי השינוי)' },
+  { key: '{רשימת_ספרים}', label: 'רשימת הספרים בהזמנה' },
+  { key: '{קישור_הזמנה}', label: 'קישור לצפייה בהזמנה' },
+];
+
 /** אילו שדות אפשר לשים בכל תבנית */
 export const TEMPLATE_FIELDS: Record<TemplateKey, Placeholder[]> = {
   ready: [...CUSTOMER_FIELDS, ...ORDER_FIELDS],
@@ -87,9 +102,13 @@ export const TEMPLATE_FIELDS: Record<TemplateKey, Placeholder[]> = {
   order_confirm: [...CUSTOMER_FIELDS, ...ORDER_FIELDS, { key: '{קישור_הזמנה}', label: 'קישור לצפייה בהזמנה' }],
   invite: [
     ...CUSTOMER_FIELDS,
-    { key: '{קישור_הזמנה}', label: 'קישור להזמנה' },
+    { key: '{קישור_הזמנה}', label: 'קישור אישי להזמנה' },
     { key: '{מועד_אחרון}', label: 'המועד האחרון להזמנה' },
+    { key: '{קישור_הסרה}', label: 'קישור להסרה מרשימת התפוצה (אם חסר – מתווסף בסוף)' },
   ],
+  change_received: CHANGE_FIELDS,
+  change_approved: CHANGE_FIELDS,
+  change_rejected: [...CHANGE_FIELDS, { key: '{סיבה}', label: 'סיבת הדחייה' }],
   supplier_po: [
     { key: '{ספק}', label: 'שם הספק' },
     { key: '{מספר_הזמנת_רכש}', label: 'מספר הזמנת הרכש' },
@@ -150,7 +169,8 @@ export const DEFAULT_TEMPLATES: EmailTemplates = {
       'נפתחה ההרשמה לרכישת ספרי הלימוד ב{מוסד}.\n' +
       'להזמנה עבור {תלמיד} בקישור האישי:\n{קישור_הזמנה}\n\n' +
       'ניתן להזמין עד {מועד_אחרון}.\n\n' +
-      'בברכה',
+      'בברכה\n\n' +
+      'לא מעוניינים לקבל מאיתנו מיילים כאלה? להסרה: {קישור_הסרה}',
   },
   order_confirm: {
     subject: 'קיבלנו את ההזמנה של {תלמיד} – מספר {מספר_הזמנה}',
@@ -161,7 +181,37 @@ export const DEFAULT_TEMPLATES: EmailTemplates = {
       '{רשימת_ספרים}\n\n' +
       'סה״כ: {סכום}\n' +
       '{הוראות_תשלום}\n\n' +
+      '{פרטי_איסוף}\n\n' +
       'לצפייה בהזמנה ולבקשת שינוי:\n{קישור_הזמנה}\n\n' +
+      'בברכה',
+  },
+  change_received: {
+    subject: 'קיבלנו את בקשת השינוי – הזמנה {מספר_הזמנה} ({תלמיד})',
+    body:
+      'שלום,\n\n' +
+      'קיבלנו את בקשת השינוי בהזמנת הספרים של {תלמיד}:\n{פירוט_בקשה}\n\n' +
+      'הבקשה תטופל במשרד, ונעדכן במייל כשתאושר.\n\n' +
+      'לצפייה בהזמנה:\n{קישור_הזמנה}\n\n' +
+      'בברכה',
+  },
+  change_approved: {
+    subject: 'בקשת השינוי אושרה – הזמנה {מספר_הזמנה} ({תלמיד})',
+    body:
+      'שלום,\n\n' +
+      'בקשת השינוי בהזמנת הספרים של {תלמיד} אושרה:\n{פירוט_בקשה}\n\n' +
+      'הספרים בהזמנה עכשיו:\n{רשימת_ספרים}\n\n' +
+      'סה״כ: {סכום}\n\n' +
+      'לצפייה בהזמנה:\n{קישור_הזמנה}\n\n' +
+      'בברכה',
+  },
+  change_rejected: {
+    subject: 'בקשת השינוי לא אושרה – הזמנה {מספר_הזמנה} ({תלמיד})',
+    body:
+      'שלום,\n\n' +
+      'לצערנו לא ניתן היה לאשר את בקשת השינוי בהזמנת הספרים של {תלמיד}:\n{פירוט_בקשה}\n\n' +
+      'הסיבה: {סיבה}\n\n' +
+      'לשאלות אפשר לפנות למשרד.\n\n' +
+      'לצפייה בהזמנה:\n{קישור_הזמנה}\n\n' +
       'בברכה',
   },
   free_customer: { subject: '', body: 'שלום,\n\n\n\nבברכה' },

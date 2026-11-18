@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FileSpreadsheet, Mail, Plus } from 'lucide-react';
+import { AlertTriangle, FileSpreadsheet, Mail, MessageSquareDiff, Plus } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useYear } from '@/components/YearContext';
 import { PageGuard, Protect } from '@/components/Protect';
@@ -52,8 +52,18 @@ const PAY_OPTIONS = [
 ];
 const payState = (o: OrderListRow) => (o.balance > 0 ? 'debt' : o.balance < 0 ? 'credit' : 'paid');
 
-type Filters = { inst: string[]; cls: string[]; status: string[]; delivery: string[]; source: string[]; pay: string[]; sort: SortKey; desc: boolean };
-const DEFAULT_FILTERS: Filters = { inst: [], cls: [], status: [], delivery: [], source: [], pay: [], sort: 'date', desc: true };
+type Filters = {
+  inst: string[];
+  cls: string[];
+  status: string[];
+  delivery: string[];
+  source: string[];
+  pay: string[];
+  review?: boolean;
+  sort: SortKey;
+  desc: boolean;
+};
+const DEFAULT_FILTERS: Filters = { inst: [], cls: [], status: [], delivery: [], source: [], pay: [], review: false, sort: 'date', desc: true };
 
 function OrdersScreen() {
   const { year } = useYear();
@@ -61,6 +71,7 @@ function OrdersScreen() {
   const [orders, setOrders] = useState<OrderListRow[] | null>(null);
   const [search, setSearch] = useState('');
   const [mailIds, setMailIds] = useState<string[] | null>(null);
+  const [pendingChanges, setPendingChanges] = useState(0);
   const yearId = year?.id ?? null;
   const [f, setF] = useStoredState(yearId ? `orders:${yearId}` : null, DEFAULT_FILTERS);
   useEffect(() => {
@@ -76,6 +87,12 @@ function OrdersScreen() {
         if (error) toast.error(dbErrorMessage(error.message));
         setOrders((data ?? []).map(toListRow));
       });
+    void supabase
+      .from('online_change_requests')
+      .select('id, orders!inner(year_id)', { count: 'exact', head: true })
+      .eq('status', 'pending')
+      .eq('orders.year_id', yearId)
+      .then(({ count }) => !cancelled && setPendingChanges(count ?? 0));
     return () => {
       cancelled = true;
     };
@@ -104,6 +121,7 @@ function OrdersScreen() {
       if (!matches(f.delivery, o.delivery_method)) return false;
       if (!matches(f.source, o.source)) return false;
       if (f.pay.length && !f.pay.includes(payState(o))) return false;
+      if (f.review && !o.needs_review) return false;
       if (!q) return true;
       return (
         String(o.number) === q ||
@@ -125,12 +143,15 @@ function OrdersScreen() {
   }, [orders, search, f]);
 
   const filterActive =
-    !!search.trim() || f.inst.length + f.cls.length + f.status.length + f.delivery.length + f.source.length + f.pay.length > 0;
+    !!search.trim() ||
+    !!f.review ||
+    f.inst.length + f.cls.length + f.status.length + f.delivery.length + f.source.length + f.pay.length > 0;
   const clearAll = () => {
     setSearch('');
     setF((prev) => ({ ...DEFAULT_FILTERS, sort: prev.sort, desc: prev.desc }));
   };
   const activeCount = (orders ?? []).filter((o) => o.status !== 'cancelled').length;
+  const reviewCount = (orders ?? []).filter((o) => o.needs_review && o.status !== 'cancelled').length;
 
   const totals = useMemo(
     () =>
@@ -171,6 +192,14 @@ function OrdersScreen() {
   return (
     <div>
       <PageHeader title={`הזמנות – ${year.name}`}>
+        <Link
+          href="/orders/requests"
+          className={`inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-sm font-medium ${
+            pendingChanges > 0 ? 'border-amber-400 bg-amber-50 text-amber-900 hover:bg-amber-100' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+          }`}
+        >
+          <MessageSquareDiff className="h-4 w-4" /> בקשות שינוי{pendingChanges > 0 && ` (${pendingChanges})`}
+        </Link>
         <Protect permId="export_excel">
           <Button variant="secondary" onClick={exportExcel} disabled={!filtered.length}>
             <FileSpreadsheet className="h-4 w-4" /> אקסל
@@ -219,6 +248,18 @@ function OrdersScreen() {
           value={f.source}
           onChange={(source) => setF({ source })}
         />
+        {(reviewCount > 0 || f.review) && (
+          <button
+            type="button"
+            onClick={() => setF({ review: !f.review })}
+            title="הזמנות מהקישור שבהן הפרטים שהוקלדו שונים מכרטיס הלקוח"
+            className={`inline-flex items-center gap-1 rounded-lg border px-3 py-2 text-sm ${
+              f.review ? 'border-amber-500 bg-amber-100 text-amber-900' : 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100'
+            }`}
+          >
+            <AlertTriangle className="h-4 w-4" /> לבדיקה ({reviewCount})
+          </button>
+        )}
         <SortSelect options={SORTS} value={f.sort} desc={f.desc} onChange={(sort, desc) => setF({ sort, desc })} />
       </div>
 
@@ -258,7 +299,14 @@ function OrdersScreen() {
                     </Link>
                   </td>
                   <td className="px-3 py-2.5 text-slate-500">{new Date(o.created_at).toLocaleDateString('he-IL')}</td>
-                  <td className="px-3 py-2.5">{o.customerName}</td>
+                  <td className="px-3 py-2.5">
+                    {o.customerName}
+                    {o.needs_review && (
+                      <span className="mr-1 rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800" title="פרטים שונים מהכרטיס">
+                        לבדיקה
+                      </span>
+                    )}
+                  </td>
                   <td className="px-3 py-2.5">
                     {o.instName} / {o.className}
                   </td>

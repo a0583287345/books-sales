@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { formatDate, money } from '@/lib/format';
+import { orderValues } from './orderValues';
 import { isValidEmail, renderTemplate, type EmailTemplate, type OutgoingEmail } from './templates';
 
 // =====================================================================
@@ -68,33 +68,7 @@ export function alreadySent(o: OrderEmailData, mode: OrderMailMode, reminderDays
   return days < reminderDays ? o.last_reminder_email : null;
 }
 
-/** ערכי השדות בתבנית */
-export function orderValues(o: OrderEmailData): Record<string, string> {
-  const pickup =
-    o.delivery_method === 'institution_day'
-      ? [
-          `החלוקה ביום המכירה ב${o.inst_name}${o.sale_day_date ? ` – ${formatDate(o.sale_day_date)}` : ''}`,
-          o.sale_day_notes,
-        ]
-          .filter(Boolean)
-          .join('\n')
-      : o.pickup_info ?? '';
-  return {
-    תלמיד: o.student_name,
-    הורה: o.parent_name ?? '',
-    מוסד: o.inst_name,
-    כיתה: o.class_name,
-    מספר_הזמנה: String(o.number),
-    סכום: money(o.total),
-    שולם: money(o.paid_amount),
-    יתרה: money(Math.max(o.balance, 0)),
-    מצב_תשלום: o.balance > 0 ? `יתרה לתשלום: ${money(o.balance)}` : 'ההזמנה שולמה – תודה!',
-    רשימת_ספרים: o.books.map((b) => `• ${b.name}${b.qty > 1 ? ` × ${b.qty}` : ''}`).join('\n'),
-    פרטי_איסוף: pickup,
-    // כשהכול שולם – אין צורך בהוראות תשלום
-    הוראות_תשלום: o.balance > 0 ? o.payment_instructions ?? '' : '',
-  };
-}
+export { orderValues };
 
 export function buildOrderEmail(o: OrderEmailData, kind: 'ready' | 'ready_partial' | 'payment_reminder', t: EmailTemplate): OutgoingEmail {
   const values = orderValues(o);
