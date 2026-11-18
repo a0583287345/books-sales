@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/components/AuthContext';
 import { LockedText, PageGuard, Protect } from '@/components/Protect';
 import PhoneLink from '@/components/PhoneLink';
-import { CustomerChildren, CustomerOrders } from '@/components/customers/CustomerHistory';
+import { CustomerOrders } from '@/components/customers/CustomerHistory';
 import { Button, EmptyState, Field, inputClass, Modal, PageHeader, Spinner } from '@/components/ui';
 import { toast } from '@/components/Toaster';
 import { dbErrorMessage } from '@/lib/dbErrors';
@@ -32,9 +32,10 @@ type Customer = {
   phone2: string | null;
   email: string | null;
   notes: string | null;
+  parent_name: string | null;
   phone_digits: string | null;
 };
-const CUSTOMER_COLUMNS = 'id, number, first_name, last_name, phone, phone2, email, notes, phone_digits';
+const CUSTOMER_COLUMNS = 'id, number, first_name, last_name, phone, phone2, email, notes, parent_name, phone_digits';
 const SHOW_LIMIT = 300;
 
 async function fetchCustomers(): Promise<Customer[]> {
@@ -66,7 +67,7 @@ function CustomersScreen() {
     if (!q) return customers ?? [];
     return (customers ?? []).filter(
       (c) =>
-        normalizeSearch(`${c.first_name} ${c.last_name} ${c.last_name} ${c.first_name}`).includes(q) ||
+        normalizeSearch(`${c.first_name} ${c.last_name} ${c.last_name} ${c.first_name} ${c.parent_name ?? ''}`).includes(q) ||
         String(c.number) === q ||
         (qDigits.length >= 3 && (c.phone_digits ?? '').includes(qDigits))
     );
@@ -80,6 +81,7 @@ function CustomersScreen() {
           'מספר לקוח': c.number,
           'שם משפחה': c.last_name,
           'שם פרטי': c.first_name,
+          'שם ההורה': c.parent_name,
           טלפון: c.phone,
           'טלפון נוסף': c.phone2,
           אימייל: c.email,
@@ -111,7 +113,7 @@ function CustomersScreen() {
           <Search className="absolute right-2.5 top-2.5 h-4 w-4 text-slate-400" />
           <input
             className="w-full rounded-lg border border-slate-300 py-2 pl-3 pr-8 text-sm"
-            placeholder="חיפוש לפי שם, מספר לקוח או טלפון..."
+            placeholder="חיפוש לפי שם התלמיד/ההורה, מספר לקוח או טלפון..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             autoFocus
@@ -130,7 +132,8 @@ function CustomersScreen() {
             <thead className="bg-slate-50 text-slate-600">
               <tr>
                 <th className="px-3 py-2 text-right">מס׳ לקוח</th>
-                <th className="px-3 py-2 text-right">שם</th>
+                <th className="px-3 py-2 text-right">שם התלמיד</th>
+                <th className="px-3 py-2 text-right">שם ההורה</th>
                 <th className="px-3 py-2 text-right">טלפון</th>
                 <th className="px-3 py-2 text-right">טלפון נוסף</th>
                 <th className="px-3 py-2 text-right">הערות</th>
@@ -143,6 +146,7 @@ function CustomersScreen() {
                   <td className="px-3 py-2.5 font-medium">
                     {c.last_name} {c.first_name}
                   </td>
+                  <td className="px-3 py-2.5 text-slate-600">{c.parent_name}</td>
                   <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
                     <Protect permId="customers_view_contact">{c.phone && <PhoneLink phone={c.phone} />}</Protect>
                   </td>
@@ -207,6 +211,7 @@ function CustomerModal({
     phone2: customer?.phone2 ?? '',
     email: customer?.email ?? '',
     notes: customer?.notes ?? '',
+    parent_name: customer?.parent_name ?? '',
   });
   const [priv, setPriv] = useState<PrivateInfo>({ id_number: '', address: '', city: '' });
   const [privLoaded, setPrivLoaded] = useState(!customer);
@@ -240,13 +245,13 @@ function CustomerModal({
 
   const save = async () => {
     if (!form.first_name.trim() || !form.last_name.trim()) return toast.error('יש להזין שם פרטי ושם משפחה');
-    if (!customer && duplicates.length && !window.confirm(`כבר קיים לקוח עם הטלפון הזה (${duplicates[0].first_name} ${duplicates[0].last_name}, מס׳ ${duplicates[0].number}). ליצור בכל זאת לקוח חדש?`)) return;
     setSaving(true);
     const payload = {
       first_name: form.first_name.trim(),
       last_name: form.last_name.trim(),
       email: nullIfEmpty(form.email),
       notes: nullIfEmpty(form.notes),
+      parent_name: nullIfEmpty(form.parent_name),
       // בלי הרשאת צפייה בטלפונים – לא נוגעים בהם בעריכה
       ...(canSeeContact || !customer ? { phone: nullIfEmpty(form.phone), phone2: nullIfEmpty(form.phone2) } : {}),
       ...(toNumber(form.number) ? { number: toNumber(form.number)! } : {}),
@@ -300,7 +305,7 @@ function CustomerModal({
         <Field label="מספר לקוח" hint={customer ? undefined : 'ריק = מספר אוטומטי'}>
           <input className={inputClass} inputMode="numeric" value={form.number} onChange={(e) => set('number', e.target.value)} />
         </Field>
-        <Field label="שם פרטי">
+        <Field label="שם פרטי (התלמיד)">
           <input className={inputClass} value={form.first_name} onChange={(e) => set('first_name', e.target.value)} />
         </Field>
         <Field label="שם משפחה">
@@ -320,14 +325,17 @@ function CustomerModal({
             <LockedText text="אין הרשאה לצפייה בטלפונים" />
           </div>
         )}
+        <Field label="שם ההורה" hint="רשות">
+          <input className={inputClass} value={form.parent_name} onChange={(e) => set('parent_name', e.target.value)} />
+        </Field>
         <Field label="אימייל">
           <input className={inputClass} dir="ltr" value={form.email} onChange={(e) => set('email', e.target.value)} />
         </Field>
         {duplicates.length > 0 && (
           <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 sm:col-span-3">
-            שימו לב: הטלפון הזה כבר קיים אצל{' '}
-            {duplicates.map((d) => `${d.first_name} ${d.last_name} (מס׳ ${d.number})`).join(', ')}. כדי לא ליצור כרטיס כפול –
-            אפשר להשתמש בלקוח הקיים.
+            הטלפון הזה קיים גם אצל{' '}
+            {duplicates.map((d) => `${d.first_name} ${d.last_name} (מס׳ ${d.number})`).join(', ')}. אם זה אח/אחות – תקין;
+            אם זה אותו תלמיד – עדיף להשתמש בכרטיס הקיים.
           </p>
         )}
         <Field label="הערות" className="sm:col-span-3">
@@ -357,7 +365,6 @@ function CustomerModal({
         </fieldset>
       </Protect>
 
-      {customer && <CustomerChildren customerId={customer.id} />}
       {customer && <CustomerOrders customerId={customer.id} />}
     </Modal>
   );

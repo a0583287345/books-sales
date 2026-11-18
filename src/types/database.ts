@@ -241,6 +241,7 @@ export type Database = {
           id: string
           last_name: string
           notes: string | null
+          parent_name: string | null
           number: number
           phone: string | null
           phone_digits: string | null
@@ -254,6 +255,7 @@ export type Database = {
           id?: string
           last_name: string
           notes?: string | null
+          parent_name?: string | null
           number?: number
           phone?: string | null
           phone_digits?: string | null
@@ -334,14 +336,6 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["institutions"]["Insert"]>
         Relationships: []
       }
-      customer_students: {
-        Row: { id: string; customer_id: string; name: string; notes: string | null; created_at: string; updated_at: string }
-        Insert: { id?: string; customer_id: string; name: string; notes?: string | null; created_at?: string; updated_at?: string }
-        Update: Partial<Database["public"]["Tables"]["customer_students"]["Insert"]>
-        Relationships: [
-          { foreignKeyName: "customer_students_customer_id_fkey"; columns: ["customer_id"]; isOneToOne: false; referencedRelation: "customers"; referencedColumns: ["id"] },
-        ]
-      }
       orders: {
         Row: {
           id: string
@@ -403,7 +397,6 @@ export type Database = {
           { foreignKeyName: "orders_customer_id_fkey"; columns: ["customer_id"]; isOneToOne: false; referencedRelation: "customers"; referencedColumns: ["id"] },
           { foreignKeyName: "orders_institution_year_id_fkey"; columns: ["institution_year_id"]; isOneToOne: false; referencedRelation: "institution_years"; referencedColumns: ["id"] },
           { foreignKeyName: "orders_year_id_fkey"; columns: ["year_id"]; isOneToOne: false; referencedRelation: "academic_years"; referencedColumns: ["id"] },
-          { foreignKeyName: "orders_student_id_fkey"; columns: ["student_id"]; isOneToOne: false; referencedRelation: "customer_students"; referencedColumns: ["id"] },
           { foreignKeyName: "orders_copied_from_fkey"; columns: ["copied_from"]; isOneToOne: false; referencedRelation: "orders"; referencedColumns: ["id"] },
         ]
       }

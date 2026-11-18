@@ -86,7 +86,7 @@ function PackScreen() {
           <OrderStatusBadge status={order.status as OrderStatus} />
         </div>
         <div className="mt-1 text-slate-600">
-          הזמנה {order.number} · {order.customer_name} · {order.inst_name} / כיתה {order.class_name} · {DELIVERY_LABELS[order.delivery_method]}
+          הזמנה {order.number} · {order.inst_name} / כיתה {order.class_name} · {DELIVERY_LABELS[order.delivery_method]}
           {order.delivery_method === 'institution_day' && order.sale_day_date && ` (${formatDate(order.sale_day_date)})`}
         </div>
         <div className={`mt-2 inline-block rounded-lg px-3 py-1 text-sm font-medium ${order.balance > 0 ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}>

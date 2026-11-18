@@ -43,7 +43,6 @@ type IyOption = {
   sale_day_date: string | null;
 };
 type ClassOption = { id: string; name: string };
-type Student = { id: string; name: string };
 
 /** נתונים להעתקת הזמנה קודמת – ממולאים פעם אחת כשהכיתה נטענת */
 type CopySource = {
@@ -63,9 +62,6 @@ function NewOrderScreen() {
   const customerParam = params.get('customer');
 
   const [customer, setCustomer] = useState<PickedCustomer | null>(null);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [studentName, setStudentName] = useState('');
-  const [studentId, setStudentId] = useState<string | null>(null);
   const [iys, setIys] = useState<IyOption[] | null>(null);
   const [iyId, setIyId] = useState('');
   const [classes, setClasses] = useState<ClassOption[]>([]);
@@ -111,7 +107,7 @@ function NewOrderScreen() {
     let cancelled = false;
     void supabase
       .from('customers')
-      .select('id, number, first_name, last_name, phone, phone_digits')
+      .select('id, number, first_name, last_name, phone, phone_digits, parent_name')
       .eq('id', customerParam)
       .maybeSingle()
       .then(({ data }) => !cancelled && data && setCustomer(data));
@@ -127,7 +123,7 @@ function NewOrderScreen() {
     void (async () => {
       const { data: o } = await supabase
         .from('orders')
-        .select('id, number, customer_id, student_id, student_name, delivery_method, notes, classes(name), institution_years(institution_id), customers(id, number, first_name, last_name, phone, phone_digits)')
+        .select('id, number, customer_id, delivery_method, notes, classes(name), institution_years(institution_id), customers(id, number, first_name, last_name, phone, phone_digits, parent_name)')
         .eq('id', copyId)
         .maybeSingle();
       if (!o || cancelled) return;
@@ -138,8 +134,6 @@ function NewOrderScreen() {
         .eq('status', 'active');
       if (cancelled) return;
       setCustomer(o.customers as unknown as PickedCustomer);
-      setStudentName(o.student_name);
-      setStudentId(o.student_id);
       setDelivery(o.delivery_method as DeliveryMethod);
       setNotes(o.notes ?? '');
       setCopy({
@@ -159,21 +153,8 @@ function NewOrderScreen() {
   const effectiveIyId =
     iyId || (copy ? iys?.find((x) => x.institution_id === copy.institutionId)?.id ?? '' : '');
 
-  // הילדים של הלקוח
   const customerId = customer?.id ?? null;
-  useEffect(() => {
-    if (!customerId) return;
-    let cancelled = false;
-    void supabase
-      .from('customer_students')
-      .select('id, name')
-      .eq('customer_id', customerId)
-      .order('name')
-      .then(({ data }) => !cancelled && setStudents(data ?? []));
-    return () => {
-      cancelled = true;
-    };
-  }, [customerId]);
+  const customerName = customer ? `${customer.first_name} ${customer.last_name}` : '';
 
   // הכיתות של המוסד
   useEffect(() => {
@@ -222,22 +203,21 @@ function NewOrderScreen() {
     };
   }, [classId, copy]);
 
-  // אזהרה: כבר יש הזמנה פעילה לאותו ילד באותה כיתה
+  // אזהרה: כבר יש הזמנה פעילה לאותו תלמיד באותה כיתה
   useEffect(() => {
-    if (!customerId || !classId || !studentName.trim()) return;
+    if (!customerId || !classId) return;
     let cancelled = false;
     void supabase
       .from('orders')
       .select('id, number')
       .eq('customer_id', customerId)
       .eq('class_id', classId)
-      .eq('student_name', studentName.trim())
       .neq('status', 'cancelled')
       .then(({ data }) => !cancelled && setExisting(data ?? []));
     return () => {
       cancelled = true;
     };
-  }, [customerId, classId, studentName]);
+  }, [customerId, classId]);
 
   const iy = iys?.find((x) => x.id === effectiveIyId) ?? null;
   const selected = (classBooks ?? []).filter((cb) => qty.has(cb.book_id));
@@ -270,17 +250,15 @@ function NewOrderScreen() {
     });
 
   const save = async () => {
-    if (!customer) return toast.error('יש לבחור לקוח');
-    if (!studentName.trim()) return toast.error('יש להזין את שם התלמיד');
+    if (!customer) return toast.error('יש לבחור תלמיד');
     if (!classId) return toast.error('יש לבחור מוסד וכיתה');
     if (!selected.length) return toast.error('יש לבחור לפחות ספר אחד');
-    if (existing.length && !window.confirm(`כבר קיימת הזמנה פעילה (מס׳ ${existing[0].number}) ל${studentName} בכיתה הזו. ליצור הזמנה נוספת?`)) return;
+    if (existing.length && !window.confirm(`כבר קיימת הזמנה פעילה (מס׳ ${existing[0].number}) ל${customerName} בכיתה הזו. ליצור הזמנה נוספת?`)) return;
     setSaving(true);
     const { data, error } = await supabase.rpc('create_order', {
       p_class_id: classId,
       p_customer_id: customer.id,
-      p_student_name: studentName.trim(),
-      p_student_id: studentId ?? undefined,
+      p_student_name: customerName,
       p_items: selected.map((cb) => ({ book_id: cb.book_id, qty: qty.get(cb.book_id) ?? 1 })),
       p_delivery: delivery,
       p_discount: discountNum,
@@ -309,7 +287,7 @@ function NewOrderScreen() {
       {/* 1. לקוח */}
       <section className={step}>
         <h2 className={stepTitle}>
-          <Num n={1} done={!!customer} /> לקוח (הורה)
+          <Num n={1} done={!!customer} /> תלמיד
         </h2>
         {customer ? (
           <div className="flex items-center gap-3 rounded-lg bg-blue-50 px-3 py-2">
@@ -319,57 +297,21 @@ function NewOrderScreen() {
             </span>
             <span className="text-sm text-slate-600" dir="ltr">{customer.phone}</span>
             {!copy && (
-              <Button variant="ghost" onClick={() => { setCustomer(null); setStudents([]); setStudentName(''); setStudentId(null); }}>
+              <Button variant="ghost" onClick={() => setCustomer(null)}>
                 <X className="h-4 w-4" /> החלפה
               </Button>
             )}
           </div>
         ) : (
-          <CustomerPicker onPick={(c) => { setCustomer(c); setStudentName(''); setStudentId(null); }} />
+          <CustomerPicker onPick={setCustomer} />
         )}
       </section>
 
-      {/* 2. תלמיד */}
+      {/* 2. מוסד וכיתה */}
       {customer && (
         <section className={step}>
           <h2 className={stepTitle}>
-            <Num n={2} done={!!studentName.trim()} /> תלמיד
-          </h2>
-          {students.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {students.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => { setStudentName(s.name); setStudentId(s.id); }}
-                  className={`rounded-full border px-4 py-2 text-sm ${
-                    studentId === s.id ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 hover:bg-slate-50'
-                  }`}
-                >
-                  {s.name}
-                </button>
-              ))}
-            </div>
-          )}
-          <Field label={students.length ? 'או ילד אחר:' : 'שם התלמיד (יישמר בכרטיס הלקוח)'}>
-            <input
-              className={`${inputClass} max-w-sm text-base`}
-              value={studentName}
-              placeholder="שם פרטי ושם משפחה"
-              onChange={(e) => {
-                setStudentName(e.target.value);
-                setStudentId(students.find((s) => s.name === e.target.value.trim())?.id ?? null);
-              }}
-            />
-          </Field>
-        </section>
-      )}
-
-      {/* 3. מוסד וכיתה */}
-      {customer && studentName.trim() && (
-        <section className={step}>
-          <h2 className={stepTitle}>
-            <Num n={3} done={!!classId} /> מוסד וכיתה
+            <Num n={2} done={!!classId} /> מוסד וכיתה
           </h2>
           {iys.length === 0 ? (
             <p className="text-sm text-slate-500">אין מוסדות בשנה הזו.</p>
@@ -408,7 +350,7 @@ function NewOrderScreen() {
           {saleWarning && <Warning>{saleWarning}</Warning>}
           {existing.length > 0 && (
             <Warning>
-              כבר קיימת הזמנה פעילה ל{studentName} בכיתה הזו:{' '}
+              כבר קיימת הזמנה פעילה ל{customerName} בכיתה הזו:{' '}
               {existing.map((e) => (
                 <a key={e.id} href={`/orders/${e.id}`} className="font-medium underline">
                   {e.number}
@@ -423,7 +365,7 @@ function NewOrderScreen() {
       {classId && (
         <section className={step}>
           <h2 className={stepTitle}>
-            <Num n={4} done={selected.length > 0} /> ספרים
+            <Num n={3} done={selected.length > 0} /> ספרים
           </h2>
           {!classBooks ? (
             <Spinner />
@@ -494,7 +436,7 @@ function NewOrderScreen() {
       {classId && selected.length > 0 && (
         <section className={step}>
           <h2 className={stepTitle}>
-            <Num n={5} done /> מסירה ותשלום
+            <Num n={4} done /> מסירה ותשלום
           </h2>
           <div className="flex flex-wrap gap-2">
             {(Object.keys(DELIVERY_LABELS) as DeliveryMethod[]).map((d) => (
@@ -541,7 +483,7 @@ function NewOrderScreen() {
               <span className="mr-2 text-lg font-bold">סה״כ {money(total)}</span>
             </div>
             <Button variant="secondary" onClick={() => router.push('/orders')}>ביטול</Button>
-            <Button variant="success" onClick={save} loading={saving} disabled={!selected.length || !studentName.trim()} className="px-6 py-2.5 text-base">
+            <Button variant="success" onClick={save} loading={saving} disabled={!selected.length} className="px-6 py-2.5 text-base">
               <ShoppingCart className="h-5 w-5" /> שמירת ההזמנה
             </Button>
           </div>

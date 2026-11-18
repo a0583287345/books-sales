@@ -215,9 +215,8 @@ function DebtsTab({ yearId, yearName }: { yearId: string; yearName: string }) {
         name: 'חובות',
         rows: filtered.map((r) => ({
           'מס׳ הזמנה': r.number,
-          לקוח: r.customers ? `${r.customers.last_name} ${r.customers.first_name}` : '',
+          תלמיד: r.customers ? `${r.customers.last_name} ${r.customers.first_name}` : '',
           טלפון: r.customers?.phone ?? '',
-          תלמיד: r.student_name,
           מוסד: r.institution_years?.institutions?.name ?? '',
           כיתה: r.classes?.name ?? '',
           סכום: r.total,
@@ -279,7 +278,6 @@ function DebtsTab({ yearId, yearName }: { yearId: string; yearName: string }) {
             <thead className="bg-slate-50 text-slate-600">
               <tr>
                 <th className="px-3 py-2 text-right">הזמנה</th>
-                <th className="px-3 py-2 text-right">לקוח</th>
                 <th className="px-3 py-2 text-right">תלמיד</th>
                 <th className="px-3 py-2 text-right">מוסד / כיתה</th>
                 <th className="px-3 py-2 text-right">סכום</th>
@@ -297,7 +295,6 @@ function DebtsTab({ yearId, yearName }: { yearId: string; yearName: string }) {
                     {r.customers?.last_name} {r.customers?.first_name}
                     <span className="mr-1 text-xs text-slate-400" dir="ltr">{r.customers?.phone}</span>
                   </td>
-                  <td className="px-3 py-2">{r.student_name}</td>
                   <td className="px-3 py-2">{r.institution_years?.institutions?.name} / {r.classes?.name}</td>
                   <td className="px-3 py-2">{money(r.total)}</td>
                   <td className="px-3 py-2">{money(r.paid_amount)}</td>
@@ -366,8 +363,7 @@ function PaymentsTab({ yearId, yearName }: { yearId: string; yearName: string })
           'אמצעי תשלום': METHOD_LABELS[r.method],
           סכום: r.amount,
           'מס׳ הזמנה': r.orders?.number,
-          לקוח: r.orders?.customers ? `${r.orders.customers.last_name} ${r.orders.customers.first_name}` : '',
-          תלמיד: r.orders?.student_name,
+          תלמיד: r.orders?.customers ? `${r.orders.customers.last_name} ${r.orders.customers.first_name}` : '',
           אסמכתה: r.reference,
           'נרשם ע״י': r.created_by_name,
           בוטל: r.voided ? 'כן' : '',
@@ -418,7 +414,7 @@ function PaymentsTab({ yearId, yearName }: { yearId: string; yearName: string })
                 <th className="px-3 py-2 text-right">אמצעי</th>
                 <th className="px-3 py-2 text-right">סכום</th>
                 <th className="px-3 py-2 text-right">הזמנה</th>
-                <th className="px-3 py-2 text-right">לקוח / תלמיד</th>
+                <th className="px-3 py-2 text-right">תלמיד</th>
                 <th className="px-3 py-2 text-right">אסמכתה</th>
               </tr>
             </thead>
@@ -433,7 +429,7 @@ function PaymentsTab({ yearId, yearName }: { yearId: string; yearName: string })
                     {r.orders && <Link href={`/orders/${r.orders.id}`} className="text-blue-700 hover:underline">{r.orders.number}</Link>}
                   </td>
                   <td className="px-3 py-2">
-                    {r.orders?.customers?.last_name} {r.orders?.customers?.first_name} · {r.orders?.student_name}
+                    {r.orders?.customers?.last_name} {r.orders?.customers?.first_name}
                   </td>
                   <td className="px-3 py-2 text-slate-500">{r.reference}</td>
                 </tr>

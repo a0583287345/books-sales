@@ -196,7 +196,6 @@ function BagsScreen() {
                     <td className="px-3 py-3 font-medium text-blue-700">{r.order_number}</td>
                     <td className="px-3 py-3">
                       <div className="font-medium">{r.student_name}</div>
-                      <div className="text-xs text-slate-500">{r.customer_name}</div>
                     </td>
                     <td className="px-3 py-3">
                       {r.inst_name} / {r.class_name}

@@ -144,31 +144,38 @@ export function booksImporter(books: Book[], suppliers: Supplier[], canCost: boo
 }
 
 // ---------------------------------------------------------------------
-// לקוחות – מזהים לפי מספר לקוח, ואם אין – לפי טלפון
+// לקוחות (תלמידים) – מזהים לפי מספר לקוח, ואם אין – לפי טלפון + שם (אחים חולקים טלפון)
 // ---------------------------------------------------------------------
-type CustomerLite = { id: string; number: number; phone_digits: string | null };
+type CustomerLite = { id: string; number: number; phone_digits: string | null; first_name: string; last_name: string };
 export function customersImporter(existing: CustomerLite[]): Importer {
   const byNumber = new Map(existing.map((c) => [c.number, c]));
+  const key = (d: string, first: string, last: string) => `${d}|${first.trim()}|${last.trim()}`;
   const byPhone = new Map<string, CustomerLite>();
-  for (const c of existing) for (const d of (c.phone_digits ?? '').split(' ')) if (d.length >= 7) byPhone.set(d, c);
+  for (const c of existing)
+    for (const d of (c.phone_digits ?? '').split(' ')) if (d.length >= 7) byPhone.set(key(d, c.first_name, c.last_name), c);
   return {
     columns: [
       { header: 'מספר לקוח', example: '' },
       { header: 'שם משפחה', required: true, example: 'כהן' },
       { header: 'שם פרטי', required: true, example: 'אברהם' },
+      { header: 'שם ההורה', example: 'יצחק כהן' },
       { header: 'טלפון', aliases: ['טלפון נייד'], example: '050-1234567' },
       { header: 'טלפון נוסף' },
       { header: 'אימייל' },
       { header: 'הערות' },
     ],
-    matchHint: 'לקוח קיים מזוהה לפי "מספר לקוח" (ואם ריק – לפי הטלפון) ומתעדכן; אחרת נוצר לקוח חדש. כך לא נוצרים כפולים.',
+    matchHint: 'כל שורה = תלמיד. תלמיד קיים מזוהה לפי "מספר לקוח" (ואם ריק – לפי טלפון + שם) ומתעדכן; אחרת נוצר תלמיד חדש. אחים עם אותו טלפון נשמרים בנפרד.',
     importRow: async (r) => {
       const num = cellNumber(r['מספר לקוח']);
       const phone = cellText(r['טלפון']);
-      const found = (num && byNumber.get(num)) || (digits(phone).length >= 7 ? byPhone.get(digits(phone)) : undefined);
+      const first = cellText(r['שם פרטי'])!;
+      const last = cellText(r['שם משפחה'])!;
+      const found =
+        (num && byNumber.get(num)) || (digits(phone).length >= 7 ? byPhone.get(key(digits(phone), first, last)) : undefined);
       const payload = {
-        first_name: cellText(r['שם פרטי'])!,
-        last_name: cellText(r['שם משפחה'])!,
+        first_name: first,
+        last_name: last,
+        parent_name: cellText(r['שם ההורה']),
         phone,
         phone2: cellText(r['טלפון נוסף']),
         email: cellText(r['אימייל']),
@@ -179,10 +186,10 @@ export function customersImporter(existing: CustomerLite[]): Importer {
         const { error } = await supabase.from('customers').update(payload).eq('id', found.id);
         return error ? fail(dbErrorMessage(error.message)) : { status: 'updated' };
       }
-      const { data, error } = await supabase.from('customers').insert(payload).select('id, number, phone_digits').single();
+      const { data, error } = await supabase.from('customers').insert(payload).select('id, number, phone_digits, first_name, last_name').single();
       if (error) return fail(dbErrorMessage(error.message));
       byNumber.set(data.number, data);
-      if (digits(phone).length >= 7) byPhone.set(digits(phone), data);
+      if (digits(phone).length >= 7) byPhone.set(key(digits(phone), first, last), data);
       return { status: 'created' };
     },
   };

@@ -147,7 +147,6 @@ function LabelCell({ l }: { l: Label }) {
           {l.inst_name} · כיתה {l.class_name}
         </div>
         <div className="truncate font-bold" style={{ fontSize: '11pt', lineHeight: 1.15 }}>{l.student_name}</div>
-        <div className="truncate">{l.customer_name}</div>
         <div className="truncate">
           הזמנה <b>{l.order_number}</b> · שקית {l.bag_no}/{l.bag_count}
           {l.is_partial && <b> · חסר</b>}

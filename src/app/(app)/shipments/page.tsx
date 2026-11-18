@@ -137,7 +137,7 @@ function PickupTab() {
             <div className="min-w-48 flex-1">
               <div className="text-lg font-bold">{r.student_name}</div>
               <div className="text-sm text-slate-600">
-                {r.customer_name} · {r.inst_name} / {r.class_name} · הזמנה {r.order_number}
+                {r.inst_name} / {r.class_name} · הזמנה {r.order_number}
               </div>
             </div>
             <div className="text-sm">

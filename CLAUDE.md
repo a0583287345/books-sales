@@ -40,7 +40,8 @@
 ## הזמנות (שלב ב׳)
 - `src/lib/orders.ts` – סטטוסים, תוויות, טיפוסים, `fetchClassBookOptions`, `isPast` (תאריך ישראל)
 - מסכים: `src/app/(app)/orders/{page,new/page,[id]/page}.tsx`; `src/components/orders/` (CustomerPicker, OrderStatusBadge);
-  `src/components/customers/CustomerHistory.tsx` (ילדים + הזמנות בכרטיס הלקוח)
+  `src/components/customers/CustomerHistory.tsx` (הזמנות בכרטיס הלקוח)
+- **לקוח = תלמיד** (`parent_name` רשות). `student_name` בהזמנה = שם הלקוח (נקבע ב-`create_order`, מסונכרן בטריגר).
 - יצירה: `rpc('create_order')` בלבד. שינויים: update רגיל – הטריגרים `guard_orders` / `guard_order_items` אוכפים
   הרשאות, מועדי ביטול, מחירים מרשימת הכיתה ואי-שינוי סכומים; `order_history` כותב ל-`order_events`
 - `subtotal` משתנה רק עם `app.order_recalc`, `paid_amount` רק עם `app.payment_sync` (בתוך פונקציות במסד)

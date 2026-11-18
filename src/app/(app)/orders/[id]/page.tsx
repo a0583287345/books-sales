@@ -40,7 +40,7 @@ export default function OrderPage() {
 }
 
 type Extra = {
-  customer: { id: string; number: number; first_name: string; last_name: string; phone: string | null; phone2: string | null } | null;
+  customer: { id: string; number: number; first_name: string; last_name: string; phone: string | null; phone2: string | null; parent_name: string | null } | null;
   className: string;
   instName: string;
   yearName: string;
@@ -54,7 +54,7 @@ async function fetchOrder(id: string) {
   const [{ data: o }, { data: items }, { data: events }] = await Promise.all([
     supabase
       .from('orders')
-      .select(`${ORDER_COLUMNS}, customers(id, number, first_name, last_name, phone, phone2), classes(name),
+      .select(`${ORDER_COLUMNS}, customers(id, number, first_name, last_name, phone, phone2, parent_name), classes(name),
         institution_years(sale_day_date, institutions(name)), academic_years(name, status)`)
       .eq('id', id)
       .maybeSingle(),
@@ -196,14 +196,15 @@ function OrderScreen() {
         )}
         {extra.yearClosed && <p className="mt-2 text-sm text-amber-700">שנת הלימודים {extra.yearName} סגורה – ההזמנה לקריאה בלבד.</p>}
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          <Info label="לקוח">
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <Info label="תלמיד">
             {extra.customer && (
               <>
                 <div className="font-medium">
                   {extra.customer.last_name} {extra.customer.first_name}
                   <span className="mr-1 text-xs text-slate-400">מס׳ {extra.customer.number}</span>
                 </div>
+                {extra.customer.parent_name && <div className="text-sm text-slate-500">הורה: {extra.customer.parent_name}</div>}
                 <Protect permId="customers_view_contact">
                   <div className="flex gap-3 text-sm">
                     {extra.customer.phone && <PhoneLink phone={extra.customer.phone} />}
@@ -212,9 +213,6 @@ function OrderScreen() {
                 </Protect>
               </>
             )}
-          </Info>
-          <Info label="תלמיד">
-            <div className="font-medium">{order.student_name}</div>
           </Info>
           <Info label="מוסד / כיתה / שנה">
             <div className="font-medium">

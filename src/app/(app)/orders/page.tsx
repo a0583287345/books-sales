@@ -109,9 +109,8 @@ function OrdersScreen() {
           'מספר הזמנה': o.number,
           תאריך: new Date(o.created_at).toLocaleDateString('he-IL'),
           'מספר לקוח': o.customerNumber,
-          לקוח: o.customerName,
+          תלמיד: o.customerName,
           טלפון: o.customerPhone,
-          תלמיד: o.student_name,
           מוסד: o.instName,
           כיתה: o.className,
           'סכום לפני הנחה': o.subtotal,
@@ -151,7 +150,7 @@ function OrdersScreen() {
           <Search className="absolute right-2.5 top-2.5 h-4 w-4 text-slate-400" />
           <input
             className="w-full rounded-lg border border-slate-300 py-2 pl-3 pr-8 text-sm"
-            placeholder="מס׳ הזמנה, שם, טלפון, תלמיד..."
+            placeholder="מס׳ הזמנה, שם, טלפון..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -200,7 +199,6 @@ function OrdersScreen() {
               <tr>
                 <th className="px-3 py-2 text-right">מס׳</th>
                 <th className="px-3 py-2 text-right">תאריך</th>
-                <th className="px-3 py-2 text-right">לקוח</th>
                 <th className="px-3 py-2 text-right">תלמיד</th>
                 <th className="px-3 py-2 text-right">מוסד / כיתה</th>
                 <th className="px-3 py-2 text-right">סכום</th>
@@ -219,7 +217,6 @@ function OrdersScreen() {
                   </td>
                   <td className="px-3 py-2.5 text-slate-500">{new Date(o.created_at).toLocaleDateString('he-IL')}</td>
                   <td className="px-3 py-2.5">{o.customerName}</td>
-                  <td className="px-3 py-2.5">{o.student_name}</td>
                   <td className="px-3 py-2.5">
                     {o.instName} / {o.className}
                   </td>
