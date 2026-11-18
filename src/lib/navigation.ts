@@ -11,6 +11,7 @@ import {
   Settings,
   ShoppingBag,
   ShoppingCart,
+  SlidersHorizontal,
   Truck,
   Users,
   Wallet,
@@ -33,13 +34,20 @@ export type NavItem = {
   ready: boolean;
 };
 
-export const NAV_ITEMS: NavItem[] = [
+/** קבוצה מתקפלת בתפריט – מסכים שמשתמשים בהם בהגדרת המערכת ולא ביום-יום */
+export type NavGroup = {
+  group: string;
+  label: string;
+  icon: LucideIcon;
+  items: NavItem[];
+};
+
+export type NavEntry = NavItem | NavGroup;
+
+export const isNavGroup = (e: NavEntry): e is NavGroup => 'group' in e;
+
+export const NAV_ITEMS: NavEntry[] = [
   { href: '/', label: 'מסך ראשי', icon: Home, perm: 'dashboard_view', ready: true },
-  { href: '/years', label: 'שנות לימודים', icon: CalendarRange, perm: 'years_view', ready: true },
-  { href: '/institutions', label: 'מוסדות', icon: School, perm: 'institutions_view', ready: true },
-  { href: '/classes', label: 'כיתות ורשימות', icon: ClipboardList, perm: 'classes_view', ready: true },
-  { href: '/books', label: 'קטלוג ספרים', icon: BookOpen, perm: 'books_view', ready: true },
-  { href: '/suppliers', label: 'ספקים', icon: Boxes, perm: 'suppliers_view', ready: true },
   { href: '/customers', label: 'לקוחות', icon: Users, perm: 'customers_view', ready: true },
   { href: '/orders', label: 'הזמנות', icon: ShoppingCart, perm: 'orders_view', ready: true },
   { href: '/purchase-orders', label: 'הזמנות רכש', icon: PackageOpen, perm: 'po_view', ready: true },
@@ -49,6 +57,18 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/shipments', label: 'מסירה ומשלוחים', icon: Truck, perm: ['shipments_view', 'pickups_do'], ready: true },
   { href: '/finance', label: 'כספים והוצאות', icon: Wallet, perm: ['finance_view', 'expenses_manage', 'supplier_payments_manage'], ready: true },
   { href: '/reports', label: 'דוחות', icon: BarChart3, perm: 'reports_view', ready: true },
+  {
+    group: 'setup',
+    label: 'הגדרת המערכת',
+    icon: SlidersHorizontal,
+    items: [
+      { href: '/years', label: 'שנות לימודים', icon: CalendarRange, perm: 'years_view', ready: true },
+      { href: '/institutions', label: 'מוסדות', icon: School, perm: 'institutions_view', ready: true },
+      { href: '/classes', label: 'כיתות ורשימות', icon: ClipboardList, perm: 'classes_view', ready: true },
+      { href: '/books', label: 'קטלוג ספרים', icon: BookOpen, perm: 'books_view', ready: true },
+      { href: '/suppliers', label: 'ספקים', icon: Boxes, perm: 'suppliers_view', ready: true },
+    ],
+  },
   {
     href: '/settings',
     label: 'הגדרות והרשאות',

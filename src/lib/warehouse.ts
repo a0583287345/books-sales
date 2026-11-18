@@ -95,6 +95,31 @@ export function bagUrl(code: string): string {
   return `${origin}/b/${encodeURIComponent(code)}`;
 }
 
+const LABELS_BATCH_KEY = 'labels-batch';
+
+/** מעבר למסך המדבקות. הרבה שקיות → הרשימה נשמרת בלשונית (קישור עם מאות מזהים ארוך מדי) */
+export function openLabels(router: { push: (url: string) => void }, ids: string[]) {
+  if (ids.length <= 30) return router.push(`/bags/labels?ids=${ids.join(',')}`);
+  try {
+    sessionStorage.setItem(LABELS_BATCH_KEY, ids.join(','));
+    router.push('/bags/labels?batch=1');
+  } catch {
+    router.push(`/bags/labels?ids=${ids.join(',')}`);
+  }
+}
+
+/** המזהים שהועברו למסך המדבקות */
+export function readLabelIds(params: URLSearchParams): string[] {
+  if (params.get('batch')) {
+    try {
+      return (sessionStorage.getItem(LABELS_BATCH_KEY) ?? '').split(',').filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
+  return (params.get('ids') ?? '').split(',').filter(Boolean);
+}
+
 export type LabelData = {
   id: string;
   code: string;

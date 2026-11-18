@@ -7,8 +7,9 @@ import { supabase } from '@/lib/supabase';
 import { useYear } from '@/components/YearContext';
 import { PageGuard, Protect } from '@/components/Protect';
 import { PoStatusBadge } from '@/components/purchasing/PoStatusBadge';
-import { EmptyState, inputClass, PageHeader, Spinner } from '@/components/ui';
-import { formatDate } from '@/lib/format';
+import { EmptyState, PageHeader, Spinner } from '@/components/ui';
+import { FilterStatus, heCompare, matches, MultiSelect, SearchBox, SortSelect, useStoredState } from '@/components/filters';
+import { formatDate, normalizeSearch } from '@/lib/format';
 import { PO_COLUMNS, PO_STATUS_LABELS, type PoStatus, type PurchaseOrder } from '@/lib/purchasing';
 
 export default function PurchaseOrdersPage() {
@@ -19,14 +20,29 @@ export default function PurchaseOrdersPage() {
   );
 }
 
+const SORTS = [
+  ['number', 'מספר הזמנה'],
+  ['order_date', 'תאריך שליחה'],
+  ['expected', 'צפי אספקה'],
+  ['supplier', 'ספק (א-ב)'],
+  ['progress', 'אחוז שהתקבל'],
+] as const;
+type SortKey = (typeof SORTS)[number][0];
+
+/** "פתוחות" = כל מה שעוד לא נסגר/בוטל */
+const OPEN_STATUSES: string[] = ['draft', 'sent', 'partial', 'received'];
+
+type Filters = { status: string[]; supplier: string[]; sort: SortKey; desc: boolean };
+const DEFAULT_FILTERS: Filters = { status: OPEN_STATUSES, supplier: [], sort: 'number', desc: true };
+
 type Row = PurchaseOrder & { supplierName: string; units: number; received: number; books: number };
 
 function PurchaseOrdersScreen() {
   const { year } = useYear();
   const [rows, setRows] = useState<Row[] | null>(null);
-  const [status, setStatus] = useState('open');
-  const [supplier, setSupplier] = useState('');
+  const [search, setSearch] = useState('');
   const yearId = year?.id ?? null;
+  const [f, setF] = useStoredState(yearId ? `po:${yearId}` : null, DEFAULT_FILTERS);
 
   useEffect(() => {
     if (!yearId) return;
@@ -56,15 +72,39 @@ function PurchaseOrdersScreen() {
     };
   }, [yearId]);
 
-  const suppliers = useMemo(
-    () => [...new Map((rows ?? []).map((r) => [r.supplier_id, r.supplierName])).entries()].sort((a, b) => a[1].localeCompare(b[1], 'he')),
+  const supplierOptions = useMemo(
+    () =>
+      [...new Map((rows ?? []).map((r) => [r.supplier_id, r.supplierName])).entries()]
+        .sort((x, y) => heCompare(x[1], y[1]))
+        .map(([value, label]) => ({ value, label })),
     [rows]
   );
-  const filtered = (rows ?? []).filter(
-    (r) =>
-      (!supplier || r.supplier_id === supplier) &&
-      (status === '' || (status === 'open' ? ['draft', 'sent', 'partial', 'received'].includes(r.status) : r.status === status))
-  );
+
+  const filtered = useMemo(() => {
+    const q = normalizeSearch(search);
+    const list = (rows ?? []).filter(
+      (r) =>
+        matches(f.supplier, r.supplier_id) &&
+        matches(f.status, r.status) &&
+        (!q || String(r.number) === q || normalizeSearch(r.supplierName).includes(q))
+    );
+    const progress = (r: Row) => (r.units ? r.received / r.units : 0);
+    const cmp: Record<SortKey, (a: Row, b: Row) => number> = {
+      number: (a, b) => a.number - b.number,
+      order_date: (a, b) => (a.order_date ?? '').localeCompare(b.order_date ?? '') || a.number - b.number,
+      expected: (a, b) => (a.expected_date ?? '9999').localeCompare(b.expected_date ?? '9999') || a.number - b.number,
+      supplier: (a, b) => heCompare(a.supplierName, b.supplierName) || a.number - b.number,
+      progress: (a, b) => progress(a) - progress(b),
+    };
+    const c = cmp[f.sort] ?? cmp.number;
+    return list.sort((a, b) => (f.desc ? -c(a, b) : c(a, b)));
+  }, [rows, search, f]);
+
+  const filterActive = !!search.trim() || f.status.length + f.supplier.length > 0;
+  const clearAll = () => {
+    setSearch('');
+    setF({ status: [], supplier: [] });
+  };
 
   if (!year) return <EmptyState>יש לפתוח שנת לימודים.</EmptyState>;
   if (!rows) return <Spinner />;
@@ -79,21 +119,25 @@ function PurchaseOrdersScreen() {
         </Protect>
       </PageHeader>
 
-      <div className="mb-3 flex flex-wrap gap-2">
-        <select className={`${inputClass} w-auto`} value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="open">פתוחות (לא נסגרו)</option>
-          <option value="">הכול</option>
-          {(Object.keys(PO_STATUS_LABELS) as PoStatus[]).map((s) => (
-            <option key={s} value={s}>{PO_STATUS_LABELS[s]}</option>
-          ))}
-        </select>
-        <select className={`${inputClass} w-auto`} value={supplier} onChange={(e) => setSupplier(e.target.value)}>
-          <option value="">כל הספקים</option>
-          {suppliers.map(([id, name]) => (
-            <option key={id} value={id}>{name}</option>
-          ))}
-        </select>
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <SearchBox value={search} onChange={setSearch} placeholder="מס׳ הזמנה / ספק..." />
+        <MultiSelect
+          label="סטטוס"
+          options={(Object.keys(PO_STATUS_LABELS) as PoStatus[]).map((s) => ({ value: s, label: PO_STATUS_LABELS[s] }))}
+          value={f.status}
+          onChange={(status) => setF({ status })}
+        />
+        <MultiSelect label="ספק" options={supplierOptions} value={f.supplier} onChange={(supplier) => setF({ supplier })} />
+        <button
+          type="button"
+          onClick={() => setF({ status: OPEN_STATUSES })}
+          className="rounded-lg px-2 py-2 text-sm text-blue-700 hover:bg-blue-50"
+        >
+          רק פתוחות
+        </button>
+        <SortSelect options={SORTS} value={f.sort} desc={f.desc} onChange={(sort, desc) => setF({ sort, desc })} />
       </div>
+      <FilterStatus active={filterActive} shown={filtered.length} total={rows.length} noun="הזמנות רכש" onClear={clearAll} />
 
       {filtered.length === 0 ? (
         <EmptyState>{rows.length ? 'אין הזמנות רכש שמתאימות לסינון' : 'עדיין אין הזמנות רכש. מתחילים ב"תכנון רכש".'}</EmptyState>

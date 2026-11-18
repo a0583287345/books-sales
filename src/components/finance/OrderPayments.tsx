@@ -130,7 +130,71 @@ export function OrderPayments({ order, onChanged }: { order: OrderInfo; onChange
   );
 }
 
-/** רישום תשלום / החזר – משמש גם במסך המסירה */
+export type PaymentInput = { method: PayMethod | ''; amount: string; date: string; reference: string };
+
+export const emptyPayment = (amount: number): PaymentInput => ({ method: '', amount: String(Math.max(amount, 0)), date: '', reference: '' });
+
+/** הפרמטרים ל-record_payment / refund_payment */
+export const paymentArgs = (orderId: string, p: PaymentInput) => ({
+  p_order: orderId,
+  p_amount: toNumber(p.amount) ?? 0,
+  p_method: p.method,
+  p_date: p.date || undefined,
+  p_reference: p.reference || undefined,
+});
+
+/**
+ * שדות התשלום: אמצעי, סכום, תאריך, אסמכתה.
+ * extra – כפתורים נוספים אחרי האמצעים (למשל "בלי תשלום"); compact – שאר השדות מופיעים רק אחרי בחירת אמצעי
+ */
+export function PaymentFields({
+  value,
+  onChange,
+  extra,
+  compact,
+}: {
+  value: PaymentInput;
+  onChange: (v: PaymentInput) => void;
+  extra?: React.ReactNode;
+  compact?: boolean;
+}) {
+  const set = (patch: Partial<PaymentInput>) => onChange({ ...value, ...patch });
+  return (
+    <>
+      <div>
+        <div className="mb-1 text-sm font-medium text-slate-700">אמצעי תשלום</div>
+        <div className="flex flex-wrap gap-2">
+          {PAY_METHODS.map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => set({ method: m })}
+              className={`rounded-lg border px-4 py-2.5 ${value.method === m ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 bg-white hover:bg-slate-50'}`}
+            >
+              {METHOD_LABELS[m]}
+            </button>
+          ))}
+          {extra}
+        </div>
+      </div>
+      {(value.method || !compact) && (
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Field label="סכום (₪)">
+            <input className={`${inputClass} text-base`} inputMode="decimal" value={value.amount} onChange={(e) => set({ amount: e.target.value })} />
+          </Field>
+          <Field label="תאריך" hint="ריק = היום">
+            <DateInput value={value.date} onChange={(date) => set({ date })} />
+          </Field>
+          <Field label="אסמכתה (לא חובה)">
+            <input className={inputClass} value={value.reference} onChange={(e) => set({ reference: e.target.value })} />
+          </Field>
+        </div>
+      )}
+    </>
+  );
+}
+
+/** רישום תשלום / החזר */
 export function PaymentModal({
   order,
   mode,
@@ -145,18 +209,15 @@ export function PaymentModal({
   title?: string;
 }) {
   const max = mode === 'pay' ? order.balance : -order.balance;
-  const [amount, setAmount] = useState(String(max));
-  const [method, setMethod] = useState<PayMethod | ''>('');
-  const [date, setDate] = useState('');
-  const [reference, setReference] = useState('');
+  const [pay, setPay] = useState<PaymentInput>(() => emptyPayment(max));
   const [saving, setSaving] = useState(false);
 
   const run = async () => {
-    const a = toNumber(amount) ?? 0;
-    if (!method) return toast.error('יש לבחור אמצעי תשלום');
+    const a = toNumber(pay.amount) ?? 0;
+    if (!pay.method) return toast.error('יש לבחור אמצעי תשלום');
     if (a <= 0) return toast.error('יש להזין סכום');
     setSaving(true);
-    const args = { p_order: order.id, p_amount: a, p_method: method, p_date: date || undefined, p_reference: reference || undefined };
+    const args = paymentArgs(order.id, pay);
     const { error } = mode === 'pay' ? await supabase.rpc('record_payment', args) : await supabase.rpc('refund_payment', args);
     setSaving(false);
     if (error) return toast.error(dbErrorMessage(error.message));
@@ -182,32 +243,7 @@ export function PaymentModal({
         <p className="text-sm text-slate-600">
           {mode === 'pay' ? `יתרה לתשלום: ${money(order.balance)}` : `יתרת זכות: ${money(-order.balance)}`}
         </p>
-        <div>
-          <div className="mb-1 text-sm font-medium text-slate-700">אמצעי תשלום</div>
-          <div className="flex flex-wrap gap-2">
-            {PAY_METHODS.map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setMethod(m)}
-                className={`rounded-lg border px-4 py-2.5 ${method === m ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 hover:bg-slate-50'}`}
-              >
-                {METHOD_LABELS[m]}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Field label="סכום (₪)">
-            <input className={`${inputClass} text-base`} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
-          </Field>
-          <Field label="תאריך" hint="ריק = היום">
-            <DateInput value={date} onChange={setDate} />
-          </Field>
-          <Field label="אסמכתה (לא חובה)">
-            <input className={inputClass} value={reference} onChange={(e) => setReference(e.target.value)} />
-          </Field>
-        </div>
+        <PaymentFields value={pay} onChange={setPay} />
       </div>
     </Modal>
   );

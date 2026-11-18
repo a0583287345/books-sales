@@ -11,7 +11,7 @@ import { toast } from '@/components/Toaster';
 import { dbErrorMessage } from '@/lib/dbErrors';
 import { money } from '@/lib/format';
 import { DELIVERY_LABELS } from '@/lib/orders';
-import { bagUrl, type LabelData } from '@/lib/warehouse';
+import { bagUrl, readLabelIds, type LabelData } from '@/lib/warehouse';
 
 // =====================================================================
 // מדבקות לשקיות: דף A4, ‏3 עמודות × 8 שורות (70×37 מ"מ). אפשר להתחיל ממיקום מסוים בדף.
@@ -36,10 +36,17 @@ type Label = LabelData & { qr: string };
 function LabelsScreen() {
   const params = useSearchParams();
   const router = useRouter();
-  const ids = (params.get('ids') ?? '').split(',').filter(Boolean);
-  const idsKey = ids.join(',');
+  const [ids, setIds] = useState<string[] | null>(null);
   const [labels, setLabels] = useState<Label[] | null>(null);
   const [start, setStart] = useState(1);
+
+  // המזהים – מהקישור או (להרבה שקיות) מהלשונית; נקרא אחרי הטעינה בדפדפן
+  const paramsKey = params.toString();
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sessionStorage זמין רק בדפדפן
+    setIds(readLabelIds(new URLSearchParams(paramsKey)));
+  }, [paramsKey]);
+  const idsKey = (ids ?? []).join(',');
 
   useEffect(() => {
     const list = idsKey.split(',').filter(Boolean);
@@ -64,11 +71,12 @@ function LabelsScreen() {
   }, [idsKey]);
 
   const markPrinted = async () => {
-    const { error } = await supabase.rpc('mark_labels_printed', { p_bags: ids });
+    const { error } = await supabase.rpc('mark_labels_printed', { p_bags: ids ?? [] });
     if (error) return toast.error(dbErrorMessage(error.message));
     toast.success('סומן שהמדבקות הודפסו');
   };
 
+  if (ids === null) return <Spinner />;
   if (!ids.length) return <EmptyState>לא נבחרו שקיות</EmptyState>;
   if (!labels) return <Spinner />;
   if (!labels.length) return <EmptyState>לא נמצאו שקיות להדפסה</EmptyState>;

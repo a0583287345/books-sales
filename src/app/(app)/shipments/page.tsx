@@ -3,18 +3,17 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { HandHeart, Plus, ScanLine, Search, Truck } from 'lucide-react';
+import { HandHeart, Plus, ScanLine, Truck } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/components/AuthContext';
 import { useYear } from '@/components/YearContext';
 import { PageGuard, Protect } from '@/components/Protect';
 import DateInput from '@/components/DateInput';
-import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
+import { PickupTab } from '@/components/warehouse/PickupTab';
 import { Button, EmptyState, Field, inputClass, Modal, PageHeader, Spinner } from '@/components/ui';
 import { toast } from '@/components/Toaster';
 import { dbErrorMessage } from '@/lib/dbErrors';
-import { formatDate, money, toNumber } from '@/lib/format';
-import type { OrderStatus } from '@/lib/orders';
+import { formatDate, toNumber } from '@/lib/format';
 import { fetchIyNames, type IyName } from '@/lib/purchasing';
 import { DELIVERY_STATUS_LABELS, type DeliveryStatus } from '@/lib/warehouse';
 
@@ -62,98 +61,6 @@ function TabBtn({ active, onClick, children }: { active: boolean; onClick: () =>
     >
       {children}
     </button>
-  );
-}
-
-// ---------------------------------------------------------------------
-// מסירה ללקוח
-// ---------------------------------------------------------------------
-
-type PickupRow = {
-  order_id: string;
-  order_number: number;
-  order_status: string;
-  student_name: string;
-  customer_name: string;
-  customer_phone: string | null;
-  inst_name: string;
-  class_name: string;
-  balance: number;
-  bags_ready: number;
-  bags_open: number;
-  bags_delivered: number;
-};
-
-function PickupTab() {
-  const { year } = useYear();
-  const router = useRouter();
-  const [query, setQuery] = useState('');
-  const [rows, setRows] = useState<PickupRow[] | null>(null);
-  const yearId = year?.id ?? null;
-
-  useEffect(() => {
-    if (!yearId || query.trim().length < 2) return;
-    let cancelled = false;
-    const t = setTimeout(() => {
-      void supabase.rpc('find_orders_for_pickup', { p_year: yearId, p_query: query.trim() }).then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) toast.error(dbErrorMessage(error.message));
-        setRows((data ?? []) as PickupRow[]);
-      });
-    }, 300);
-    return () => {
-      cancelled = true;
-      clearTimeout(t);
-    };
-  }, [query, yearId]);
-
-  if (!year) return <EmptyState>יש לפתוח שנת לימודים.</EmptyState>;
-  const shown = query.trim().length >= 2 ? rows : null;
-
-  return (
-    <div className="mx-auto max-w-3xl space-y-3">
-      <div className="relative">
-        <Search className="absolute right-3 top-3.5 h-5 w-5 text-slate-400" />
-        <input
-          className="w-full rounded-xl border border-slate-300 py-3 pl-3 pr-11 text-lg"
-          placeholder="שם, טלפון, תלמיד, מס׳ הזמנה..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          autoFocus
-        />
-      </div>
-      {shown === null ? (
-        <p className="text-center text-sm text-slate-400">הקלידו לפחות 2 תווים, או סרקו את המדבקה.</p>
-      ) : shown.length === 0 ? (
-        <EmptyState>לא נמצאו הזמנות</EmptyState>
-      ) : (
-        shown.map((r) => (
-          <button
-            key={r.order_id}
-            type="button"
-            onClick={() => router.push(`/bags/order/${r.order_id}`)}
-            className="flex w-full flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-right shadow-sm hover:border-blue-400"
-          >
-            <div className="min-w-48 flex-1">
-              <div className="text-lg font-bold">{r.student_name}</div>
-              <div className="text-sm text-slate-600">
-                {r.inst_name} / {r.class_name} · הזמנה {r.order_number}
-              </div>
-            </div>
-            <div className="text-sm">
-              {r.bags_ready > 0 && <span className="rounded-full bg-teal-100 px-2 py-0.5 text-teal-800">{r.bags_ready} שקיות מוכנות</span>}
-              {r.bags_open > 0 && <span className="mr-1 rounded-full bg-amber-100 px-2 py-0.5 text-amber-800">{r.bags_open} בהכנה</span>}
-              {r.bags_delivered > 0 && <span className="mr-1 rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-800">{r.bags_delivered} נמסרו</span>}
-              {r.bags_ready + r.bags_open + r.bags_delivered === 0 && <span className="text-slate-400">עדיין לא נארזה</span>}
-            </div>
-            <div className={`text-sm font-medium ${r.balance > 0 ? 'text-red-600' : 'text-emerald-700'}`}>
-              {r.balance > 0 ? `לתשלום ${money(r.balance)}` : 'שולם'}
-            </div>
-            <OrderStatusBadge status={r.order_status as OrderStatus} />
-          </button>
-        ))
-      )}
-    </div>
   );
 }
 

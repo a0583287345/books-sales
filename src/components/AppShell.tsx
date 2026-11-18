@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BookOpen, CalendarRange, Loader2, Lock, LogOut, Menu, UserX, X } from 'lucide-react';
+import { BookOpen, CalendarRange, ChevronDown, ChevronUp, Loader2, Lock, LogOut, Menu, UserX, X } from 'lucide-react';
 import { useAuth } from '@/components/AuthContext';
 import { useYear, YEAR_STATUS_LABELS } from '@/components/YearContext';
 import { toast } from '@/components/Toaster';
-import { NAV_ITEMS, type NavItem } from '@/lib/navigation';
+import { isNavGroup, NAV_ITEMS, type NavGroup, type NavItem } from '@/lib/navigation';
 import type { PermissionState } from '@/lib/permissions';
 
 /** מצב הפריט בתפריט: מותר אם אחת ההרשאות מותרת; חסום אם אחת חסומה; אחרת מוסתר */
@@ -18,10 +18,35 @@ export function navState(item: NavItem, stateOf: (p: string) => PermissionState)
   return 'hidden';
 }
 
+const NAV_GROUPS_KEY = 'nav-open-groups';
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { access, loading, inactive, stateOf, signOut } = useAuth();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+
+  // אילו קבוצות פתוחות – נשמר במכשיר
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(NAV_GROUPS_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- קריאה חד-פעמית מהמכשיר
+      if (saved) setOpenGroups(JSON.parse(saved));
+    } catch {
+      /* אין גישה לאחסון – מתחילים סגור */
+    }
+  }, []);
+
+  const toggleGroup = (key: string) =>
+    setOpenGroups((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      try {
+        localStorage.setItem(NAV_GROUPS_KEY, JSON.stringify(next));
+      } catch {
+        /* לא נשמר – לא נורא */
+      }
+      return next;
+    });
 
   if (loading) {
     return (
@@ -46,51 +71,80 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
 
+  const renderItem = (item: NavItem, nested = false) => {
+    const state = navState(item, stateOf);
+    if (state === 'hidden') return null;
+    const Icon = item.icon;
+    const base = `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm ${nested ? 'pr-6' : ''}`;
+
+    if (state === 'locked' || !item.ready) {
+      return (
+        <button
+          key={item.href}
+          type="button"
+          onClick={() =>
+            state === 'locked'
+              ? toast.denied(`אין לך הרשאה למסך: ${item.label}`)
+              : toast.info(`המסך "${item.label}" ייבנה בהמשך`)
+          }
+          className={`${base} text-slate-400 hover:bg-slate-50 text-right`}
+        >
+          <Icon className="w-5 h-5 shrink-0" />
+          <span className="flex-1">{item.label}</span>
+          {state === 'locked' ? (
+            <Lock className="w-3.5 h-3.5" />
+          ) : (
+            <span className="text-[10px] rounded bg-slate-100 px-1.5 py-0.5">בקרוב</span>
+          )}
+        </button>
+      );
+    }
+
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={() => setOpen(false)}
+        className={`${base} ${
+          isActive(item.href) ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-700 hover:bg-slate-50'
+        }`}
+      >
+        <Icon className="w-5 h-5 shrink-0" />
+        <span>{item.label}</span>
+      </Link>
+    );
+  };
+
+  const renderGroup = (g: NavGroup) => {
+    const visible = g.items.filter((i) => navState(i, stateOf) !== 'hidden');
+    if (visible.length === 0) return null;
+    const hasActive = visible.some((i) => isActive(i.href));
+    // קבוצה שיש בה המסך הנוכחי – תמיד פתוחה
+    const expanded = hasActive || !!openGroups[g.group];
+    const Icon = g.icon;
+    const Chevron = expanded ? ChevronUp : ChevronDown;
+    return (
+      <div key={g.group} className="flex flex-col gap-0.5">
+        <button
+          type="button"
+          onClick={() => !hasActive && toggleGroup(g.group)}
+          aria-expanded={expanded}
+          className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-right ${
+            hasActive ? 'text-blue-700 font-semibold' : 'text-slate-700 hover:bg-slate-50'
+          }`}
+        >
+          <Icon className="w-5 h-5 shrink-0" />
+          <span className="flex-1">{g.label}</span>
+          <Chevron className={`w-4 h-4 ${hasActive ? 'opacity-30' : 'text-slate-400'}`} />
+        </button>
+        {expanded && visible.map((i) => renderItem(i, true))}
+      </div>
+    );
+  };
+
   const nav = (
     <nav className="flex flex-col gap-0.5 p-2">
-      {NAV_ITEMS.map((item) => {
-        const state = navState(item, stateOf);
-        if (state === 'hidden') return null;
-        const Icon = item.icon;
-        const base = 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm';
-
-        if (state === 'locked' || !item.ready) {
-          return (
-            <button
-              key={item.href}
-              type="button"
-              onClick={() =>
-                state === 'locked'
-                  ? toast.denied(`אין לך הרשאה למסך: ${item.label}`)
-                  : toast.info(`המסך "${item.label}" ייבנה בהמשך`)
-              }
-              className={`${base} text-slate-400 hover:bg-slate-50 text-right`}
-            >
-              <Icon className="w-5 h-5 shrink-0" />
-              <span className="flex-1">{item.label}</span>
-              {state === 'locked' ? (
-                <Lock className="w-3.5 h-3.5" />
-              ) : (
-                <span className="text-[10px] rounded bg-slate-100 px-1.5 py-0.5">בקרוב</span>
-              )}
-            </button>
-          );
-        }
-
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={() => setOpen(false)}
-            className={`${base} ${
-              isActive(item.href) ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-700 hover:bg-slate-50'
-            }`}
-          >
-            <Icon className="w-5 h-5 shrink-0" />
-            <span>{item.label}</span>
-          </Link>
-        );
-      })}
+      {NAV_ITEMS.map((e) => (isNavGroup(e) ? renderGroup(e) : renderItem(e)))}
     </nav>
   );
 

@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FileSpreadsheet, Plus, Search } from 'lucide-react';
+import { FileSpreadsheet, Plus } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useYear } from '@/components/YearContext';
 import { PageGuard, Protect } from '@/components/Protect';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
-import { Button, EmptyState, inputClass, PageHeader, Spinner } from '@/components/ui';
+import { Button, EmptyState, PageHeader, Spinner } from '@/components/ui';
+import { FilterStatus, heCompare, matches, MultiSelect, SearchBox, SortSelect, useStoredState } from '@/components/filters';
 import { toast } from '@/components/Toaster';
 import { dbErrorMessage } from '@/lib/dbErrors';
 import { exportToExcel } from '@/lib/excel';
@@ -33,17 +34,33 @@ export default function OrdersPage() {
 
 const SHOW_LIMIT = 300;
 
+const SORTS = [
+  ['date', 'תאריך הזמנה'],
+  ['number', 'מספר הזמנה'],
+  ['name', 'שם התלמיד (א-ב)'],
+  ['inst', 'מוסד וכיתה'],
+  ['total', 'סכום'],
+  ['balance', 'יתרה לתשלום'],
+] as const;
+type SortKey = (typeof SORTS)[number][0];
+
+const PAY_OPTIONS = [
+  { value: 'debt', label: 'יש יתרה לתשלום' },
+  { value: 'paid', label: 'שולם במלואו' },
+  { value: 'credit', label: 'יתרת זכות' },
+];
+const payState = (o: OrderListRow) => (o.balance > 0 ? 'debt' : o.balance < 0 ? 'credit' : 'paid');
+
+type Filters = { inst: string[]; cls: string[]; status: string[]; delivery: string[]; source: string[]; pay: string[]; sort: SortKey; desc: boolean };
+const DEFAULT_FILTERS: Filters = { inst: [], cls: [], status: [], delivery: [], source: [], pay: [], sort: 'date', desc: true };
+
 function OrdersScreen() {
   const { year } = useYear();
   const router = useRouter();
   const [orders, setOrders] = useState<OrderListRow[] | null>(null);
   const [search, setSearch] = useState('');
-  const [inst, setInst] = useState('');
-  const [cls, setCls] = useState('');
-  const [status, setStatus] = useState('active');
-  const [delivery, setDelivery] = useState('');
-
   const yearId = year?.id ?? null;
+  const [f, setF] = useStoredState(yearId ? `orders:${yearId}` : null, DEFAULT_FILTERS);
   useEffect(() => {
     if (!yearId) return;
     let cancelled = false;
@@ -62,26 +79,29 @@ function OrdersScreen() {
     };
   }, [yearId]);
 
-  const institutions = useMemo(() => {
+  const instOptions = useMemo(() => {
     const m = new Map<string, string>();
-    for (const o of orders ?? []) m.set(o.institution_year_id, `${o.instNumber} – ${o.instName}`);
-    return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1], 'he'));
+    for (const o of orders ?? []) m.set(o.institution_year_id, o.instName);
+    return [...m.entries()].sort((x, y) => heCompare(x[1], y[1])).map(([value, label]) => ({ value, label }));
   }, [orders]);
-  const classes = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const o of orders ?? []) if (!inst || o.institution_year_id === inst) m.set(o.class_id, o.className);
-    return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1], 'he'));
-  }, [orders, inst]);
+  const classOptions = useMemo(() => {
+    const m = new Map<string, { label: string; sub: string }>();
+    for (const o of orders ?? []) if (matches(f.inst, o.institution_year_id)) m.set(o.class_id, { label: o.className, sub: o.instName });
+    return [...m.entries()]
+      .sort((x, y) => heCompare(x[1].sub, y[1].sub) || heCompare(x[1].label, y[1].label))
+      .map(([value, v]) => ({ value, ...v }));
+  }, [orders, f.inst]);
 
   const filtered = useMemo(() => {
     const q = normalizeSearch(search);
-    const qDigits = search.replace(/\D/g, '');
-    return (orders ?? []).filter((o) => {
-      if (inst && o.institution_year_id !== inst) return false;
-      if (cls && o.class_id !== cls) return false;
-      if (status === 'active' && o.status === 'cancelled') return false;
-      if (status && status !== 'active' && o.status !== status) return false;
-      if (delivery && o.delivery_method !== delivery) return false;
+    const qDigits = search.replace(/D/g, '');
+    const list = (orders ?? []).filter((o) => {
+      if (!matches(f.inst, o.institution_year_id)) return false;
+      if (!matches(f.cls, o.class_id)) return false;
+      if (f.status.length === 0 ? o.status === 'cancelled' : !f.status.includes(o.status)) return false;
+      if (!matches(f.delivery, o.delivery_method)) return false;
+      if (!matches(f.source, o.source)) return false;
+      if (f.pay.length && !f.pay.includes(payState(o))) return false;
       if (!q) return true;
       return (
         String(o.number) === q ||
@@ -90,7 +110,25 @@ function OrdersScreen() {
         (qDigits.length >= 3 && o.customerPhoneDigits.includes(qDigits))
       );
     });
-  }, [orders, search, inst, cls, status, delivery]);
+    const cmp: Record<SortKey, (a: OrderListRow, b: OrderListRow) => number> = {
+      date: (a, b) => a.created_at.localeCompare(b.created_at) || a.number - b.number,
+      number: (a, b) => a.number - b.number,
+      name: (a, b) => heCompare(a.customerName, b.customerName),
+      inst: (a, b) => heCompare(a.instName, b.instName) || heCompare(a.className, b.className) || heCompare(a.customerName, b.customerName),
+      total: (a, b) => a.total - b.total,
+      balance: (a, b) => a.balance - b.balance,
+    };
+    const c = cmp[f.sort] ?? cmp.date;
+    return list.sort((a, b) => (f.desc ? -c(a, b) : c(a, b)));
+  }, [orders, search, f]);
+
+  const filterActive =
+    !!search.trim() || f.inst.length + f.cls.length + f.status.length + f.delivery.length + f.source.length + f.pay.length > 0;
+  const clearAll = () => {
+    setSearch('');
+    setF((prev) => ({ ...DEFAULT_FILTERS, sort: prev.sort, desc: prev.desc }));
+  };
+  const activeCount = (orders ?? []).filter((o) => o.status !== 'cancelled').length;
 
   const totals = useMemo(
     () =>
@@ -128,8 +166,6 @@ function OrdersScreen() {
   if (!year) return <EmptyState>יש לפתוח שנת לימודים במסך &quot;שנות לימודים&quot;.</EmptyState>;
   if (!orders) return <Spinner />;
 
-  const select = `${inputClass} w-auto`;
-
   return (
     <div>
       <PageHeader title={`הזמנות – ${year.name}`}>
@@ -146,49 +182,43 @@ function OrdersScreen() {
       </PageHeader>
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute right-2.5 top-2.5 h-4 w-4 text-slate-400" />
-          <input
-            className="w-full rounded-lg border border-slate-300 py-2 pl-3 pr-8 text-sm"
-            placeholder="מס׳ הזמנה, שם, טלפון..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <select className={select} value={inst} onChange={(e) => { setInst(e.target.value); setCls(''); }}>
-          <option value="">כל המוסדות</option>
-          {institutions.map(([id, name]) => (
-            <option key={id} value={id}>{name}</option>
-          ))}
-        </select>
-        <select className={select} value={cls} onChange={(e) => setCls(e.target.value)}>
-          <option value="">כל הכיתות</option>
-          {classes.map(([id, name]) => (
-            <option key={id} value={id}>{name}</option>
-          ))}
-        </select>
-        <select className={select} value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="active">כל הפעילות (בלי מבוטלות)</option>
-          <option value="">כל הסטטוסים</option>
-          {ORDER_STATUSES.map((s) => (
-            <option key={s} value={s}>{ORDER_STATUS_LABELS[s]}</option>
-          ))}
-        </select>
-        <select className={select} value={delivery} onChange={(e) => setDelivery(e.target.value)}>
-          <option value="">כל אופני המסירה</option>
-          {Object.entries(DELIVERY_LABELS).map(([k, v]) => (
-            <option key={k} value={k}>{v}</option>
-          ))}
-        </select>
+        <SearchBox value={search} onChange={setSearch} placeholder="מס׳ הזמנה, שם, טלפון..." />
+        <MultiSelect label="מוסד" options={instOptions} value={f.inst} onChange={(inst) => setF({ inst, cls: [] })} />
+        <MultiSelect label="כיתה" options={classOptions} value={f.cls} onChange={(cls) => setF({ cls })} />
+        <MultiSelect
+          label="סטטוס"
+          options={ORDER_STATUSES.map((s) => ({ value: s, label: ORDER_STATUS_LABELS[s] }))}
+          value={f.status}
+          onChange={(status) => setF({ status })}
+          emptyText="פעילות (בלי מבוטלות)"
+        />
+        <MultiSelect
+          label="מסירה"
+          options={Object.entries(DELIVERY_LABELS).map(([value, label]) => ({ value, label }))}
+          value={f.delivery}
+          onChange={(delivery) => setF({ delivery })}
+        />
+        <Protect permId="finance_view" lockedFallback={null}>
+          <MultiSelect label="תשלום" options={PAY_OPTIONS} value={f.pay} onChange={(pay) => setF({ pay })} />
+        </Protect>
+        <MultiSelect
+          label="מקור"
+          options={Object.entries(SOURCE_LABELS).map(([value, label]) => ({ value, label }))}
+          value={f.source}
+          onChange={(source) => setF({ source })}
+        />
+        <SortSelect options={SORTS} value={f.sort} desc={f.desc} onChange={(sort, desc) => setF({ sort, desc })} />
       </div>
 
-      <div className="mb-2 text-sm text-slate-500">
-        {filtered.length} הזמנות · סה״כ {money(totals.total)}
-        <Protect permId="finance_view" lockedFallback={null}>
-          {' '}· יתרה לתשלום {money(totals.balance)}
-        </Protect>
-        {filtered.length > SHOW_LIMIT && ` · מוצגות ${SHOW_LIMIT} האחרונות – צמצמו בסינון`}
-      </div>
+      <FilterStatus active={filterActive} shown={filtered.length} total={activeCount} noun="הזמנות פעילות" onClear={clearAll}>
+        <span>
+          סה״כ {money(totals.total)}
+          <Protect permId="finance_view" lockedFallback={null}>
+            {' '}· יתרה לתשלום {money(totals.balance)}
+          </Protect>
+          {filtered.length > SHOW_LIMIT && ` · מוצגות ${SHOW_LIMIT} הראשונות – צמצמו בסינון`}
+        </span>
+      </FilterStatus>
 
       {filtered.length === 0 ? (
         <EmptyState>{orders.length ? 'אין הזמנות שמתאימות לסינון' : 'עדיין אין הזמנות בשנה הזו'}</EmptyState>

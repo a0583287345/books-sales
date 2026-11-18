@@ -176,7 +176,7 @@ function OrderScreen() {
           <OrderStatusBadge status={order.status} />
           <span className="text-sm text-slate-500">
             {new Date(order.created_at).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' })}
-            {order.created_by_name && ` · ${order.created_by_name}`} · {SOURCE_LABELS[order.source] ?? order.source}
+            {order.created_by_name && <span className="print:hidden"> · {order.created_by_name}</span>} · {SOURCE_LABELS[order.source] ?? order.source}
             {extra.copiedFromNumber && order.copied_from && (
               <>
                 {' '}מהזמנה{' '}
@@ -190,7 +190,7 @@ function OrderScreen() {
         {order.status === 'cancelled' && (
           <p className="mt-2 rounded-lg bg-slate-100 px-3 py-2 text-sm">
             בוטלה {order.cancelled_at && new Date(order.cancelled_at).toLocaleDateString('he-IL')}
-            {order.cancelled_by_name && ` ע״י ${order.cancelled_by_name}`}
+            {order.cancelled_by_name && <span className="print:hidden"> ע״י {order.cancelled_by_name}</span>}
             {order.cancel_reason && ` – ${order.cancel_reason}`}
           </p>
         )}

@@ -25,6 +25,8 @@
 - `src/types/database.ts` – טיפוסים שנוצרו מהמסד (לייצר מחדש אחרי שינוי סכמה)
 - `src/components/YearContext.tsx` – `useYear()`: השנה הנבחרת (נשמרת במכשיר), `readOnly` לשנה סגורה
 - `src/components/ui.tsx` – `Modal`, `Field`, `Button`, `PageHeader`, `inputClass`... ; `BookPicker`, `DateInput`, `PhoneLink`
+- `src/components/filters.tsx` – סינון/מיון לרשימות: `useStoredState` (נשמר במכשיר), `MultiSelect`, `SortSelect`,
+  `SearchBox`, `FilterStatus` ("סינון פעיל"). כל רשימה חדשה – להשתמש בהם
 - `src/lib/entities.ts` – טיפוסים, רשימות עמודות ושליפות משותפות (ספקים, ספרים, מוסדות, כיתות)
 - `src/lib/format.ts` (₪, תאריכים, חיפוש), `src/lib/excel.ts` (`exportToExcel`), `src/lib/dbErrors.ts` (`dbErrorMessage`)
 - **אסור לייצא מ-`page.tsx` משהו חוץ מהקומפוננטה** – דברים משותפים ב-`src/lib` / `src/components`
@@ -55,7 +57,8 @@
 
 ## מחסן (שלב ד׳)
 - `src/lib/warehouse.ts` – סטטוסי שקית/משלוח, `fetchPackDetails`, `bagUrl` (QR = `/b/<קוד>`)
-- מסכים: `bags/{page,order/[id]/page,labels/page}.tsx`, `b/[code]/page.tsx`, `scan/page.tsx` (qr-scanner), `shipments/{page,[id]/page}.tsx`
+- מסכים: `bags/{page,order/[id]/page,labels/page}.tsx`, `b/[code]/page.tsx`, `scan/page.tsx` (qr-scanner), `shipments/{page,[id]/page}.tsx`;
+  `src/components/warehouse/{PickupTab,DeliverOrderModal}.tsx` (מסירה = חלון אחד: תשלום + שקיות; `openLabels` להדפסה מרובה)
 - כל שינוי בשקיות/משלוחים – רק דרך פונקציות במסד (אין מדיניות כתיבה על הטבלאות); נתונים לעובדים דרך פונקציות
   definer (`packing_queue`, `order_pack_details`...) כדי שלא יצטרכו הרשאת הזמנות/לקוחות
 - **`apply_migration` שמעדכן פונקציות קיימות נדחה אוטומטית** – לבקש מהמשתמש להריץ את הקובץ ב-SQL Editor של Supabase
