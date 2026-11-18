@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowRight, Ban, CheckCircle2, FileSpreadsheet, Lock, LockOpen, PackageCheck, Plus, Printer, Send, Undo2 } from 'lucide-react';
+import { ArrowRight, Ban, CheckCircle2, FileSpreadsheet, Lock, LockOpen, Mail, PackageCheck, Plus, Printer, Send, Undo2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/components/AuthContext';
 import { PageGuard, Protect } from '@/components/Protect';
 import { PoStatusBadge } from '@/components/purchasing/PoStatusBadge';
+import { SupplierPoEmailModal, type PoMailItem } from '@/components/email/SupplierPoEmailModal';
 import { BookPicker } from '@/components/BookPicker';
 import DateInput from '@/components/DateInput';
 import { Button, EmptyState, Field, inputClass, Modal, Spinner } from '@/components/ui';
@@ -84,6 +85,7 @@ function PoScreen() {
   const [data, setData] = useState<Awaited<ReturnType<typeof fetchPo>> | undefined>(undefined);
   const [closing, setClosing] = useState(false);
   const [returning, setReturning] = useState<ItemFull | null>(null);
+  const [mailItems, setMailItems] = useState<PoMailItem[] | null>(null);
 
   const reload = useCallback(async () => setData(await fetchPo(id, canSeeCost)), [id, canSeeCost]);
   useEffect(() => {
@@ -196,6 +198,17 @@ function PoScreen() {
           <ArrowRight className="h-4 w-4" /> להזמנות הרכש
         </Button>
         <div className="flex-1" />
+        {po.status !== 'cancelled' && (
+          <Protect permId="emails_suppliers" lockedFallback={null}>
+            <Button
+              variant="secondary"
+              onClick={() => setMailItems(items.map((i) => ({ name: i.book?.name ?? '', code: i.book?.code ?? null, sku: i.sku, qty: i.qty_ordered })))}
+              disabled={!items.some((i) => i.qty_ordered > 0)}
+            >
+              <Mail className="h-4 w-4" /> שליחה לספק במייל
+            </Button>
+          </Protect>
+        )}
         <Protect permId="export_excel">
           <Button variant="secondary" onClick={exportForSupplier}>
             <FileSpreadsheet className="h-4 w-4" /> אקסל לספק
@@ -396,6 +409,19 @@ function PoScreen() {
         </ul>
       </div>
 
+      {mailItems && supplier && (
+        <SupplierPoEmailModal
+          po={po}
+          supplier={supplier}
+          items={mailItems}
+          onClose={() => setMailItems(null)}
+          onSent={(markSent) => {
+            setMailItems(null);
+            if (markSent) void setStatus('sent');
+            else void reload();
+          }}
+        />
+      )}
       {closing && (
         <CloseModal
           items={items}
